@@ -1,22 +1,27 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: EMDR Therapy Assistant API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Therapist authentication
+  - name: sessions
+    description: EMDR session management
+  - name: email
+    description: Email operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +29,288 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: registerTherapist
+      tags: [auth]
+      summary: Register a new therapist account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginTherapist
+      tags: [auth]
+      summary: Login as a therapist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TherapistProfile"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logoutTherapist
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current therapist profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TherapistProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/confirm/{token}:
+    get:
+      operationId: confirmEmail
+      tags: [auth]
+      summary: Confirm email with token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/update-profile:
+    put:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update therapist profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TherapistProfile"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/change-password:
+    put:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change therapist password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/create:
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a new therapy session with a unique 6-digit ID
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+        "401":
+          description: Not authenticated or not confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/join:
+    post:
+      operationId: joinSession
+      tags: [sessions]
+      summary: Patient joins a session using the 6-digit ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinSessionRequest"
+      responses:
+        "200":
+          description: Joined session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+        "400":
+          description: Invalid or expired session ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/{sessionId}/state:
+    get:
+      operationId: getSessionState
+      tags: [sessions]
+      summary: Get current state of a session (animation, speed, colors)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: updateSessionState
+      tags: [sessions]
+      summary: Therapist updates session state (start/stop, speed, colors)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSessionStateRequest"
+      responses:
+        "200":
+          description: Updated state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+        "401":
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /email/send-patient-invite:
+    post:
+      operationId: sendPatientInvite
+      tags: [email]
+      summary: Send an invite email to a patient with the app link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendPatientInviteRequest"
+      responses:
+        "200":
+          description: Email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +318,124 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+      required: [name, email, password, confirmPassword]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+      required: [currentPassword, newPassword, confirmPassword]
+
+    TherapistProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, active]
+      required: [id, name, email, status]
+
+    SessionInfo:
+      type: object
+      properties:
+        sessionCode:
+          type: string
+        therapistId:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+      required: [sessionCode, therapistId, expiresAt]
+
+    JoinSessionRequest:
+      type: object
+      properties:
+        sessionCode:
+          type: string
+      required: [sessionCode]
+
+    SessionState:
+      type: object
+      properties:
+        sessionCode:
+          type: string
+        isPlaying:
+          type: boolean
+        speedSeconds:
+          type: number
+        dotColor:
+          type: string
+        backgroundColor:
+          type: string
+      required: [sessionCode, isPlaying, speedSeconds, dotColor, backgroundColor]
+
+    UpdateSessionStateRequest:
+      type: object
+      properties:
+        isPlaying:
+          type: boolean
+        speedSeconds:
+          type: number
+        dotColor:
+          type: string
+        backgroundColor:
+          type: string
