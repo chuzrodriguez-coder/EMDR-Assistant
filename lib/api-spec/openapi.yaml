@@ -1,0 +1,657 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: EMDR Therapy Assistant API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Therapist authentication
+  - name: sessions
+    description: EMDR session management
+  - name: email
+    description: Email operations
+  - name: themes
+    description: Saved color themes
+  - name: admin
+    description: Admin operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: registerTherapist
+      tags: [auth]
+      summary: Register a new therapist account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginTherapist
+      tags: [auth]
+      summary: Login as a therapist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TherapistProfile"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logoutTherapist
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current therapist profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TherapistProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/update-profile:
+    put:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update therapist profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TherapistProfile"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/change-password:
+    put:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change therapist password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/create:
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a new therapy session with a unique 6-digit ID
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+        "401":
+          description: Not authenticated or not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/join:
+    post:
+      operationId: joinSession
+      tags: [sessions]
+      summary: Patient joins a session using the 6-digit ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinSessionRequest"
+      responses:
+        "200":
+          description: Joined session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+        "400":
+          description: Invalid or expired session ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/{sessionId}/state:
+    get:
+      operationId: getSessionState
+      tags: [sessions]
+      summary: Get current state of a session (animation, speed, colors)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: updateSessionState
+      tags: [sessions]
+      summary: Therapist updates session state (start/stop, speed, colors)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSessionStateRequest"
+      responses:
+        "200":
+          description: Updated state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+        "401":
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /themes:
+    get:
+      operationId: getSavedThemes
+      tags: [themes]
+      summary: Get therapist's saved color themes
+      responses:
+        "200":
+          description: List of saved themes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedTheme"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: saveTheme
+      tags: [themes]
+      summary: Save a color theme to therapist profile (max 6)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveThemeRequest"
+      responses:
+        "201":
+          description: Theme saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedTheme"
+        "400":
+          description: Max themes reached or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /themes/{themeId}:
+    delete:
+      operationId: deleteTheme
+      tags: [themes]
+      summary: Delete a saved color theme
+      parameters:
+        - name: themeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Theme deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Theme not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /email/send-patient-invite:
+    post:
+      operationId: sendPatientInvite
+      tags: [email]
+      summary: Send an invite email to a patient with the app link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendPatientInviteRequest"
+      responses:
+        "200":
+          description: Email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists:
+    get:
+      operationId: adminListTherapists
+      tags: [admin]
+      summary: List all therapists (admin only)
+      responses:
+        "200":
+          description: List of therapists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTherapistView"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists/search:
+    get:
+      operationId: adminSearchTherapists
+      tags: [admin]
+      summary: Search therapists by name or email (admin only)
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching therapists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTherapistView"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists/{id}/activate:
+    patch:
+      operationId: adminActivateTherapist
+      tags: [admin]
+      summary: Activate a therapist account (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Therapist activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTherapistView"
+        "404":
+          description: Therapist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists/{id}/admin:
+    patch:
+      operationId: adminToggleAdminStatus
+      tags: [admin]
+      summary: Toggle admin status of a therapist (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Admin status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTherapistView"
+        "400":
+          description: Cannot modify self
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Therapist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+      required: [name, email, password, confirmPassword]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+      required: [currentPassword, newPassword, confirmPassword]
+
+    TherapistProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, active]
+        isAdmin:
+          type: boolean
+      required: [id, name, email, status, isAdmin]
+
+    AdminTherapistView:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, active]
+        isAdmin:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, status, isAdmin, createdAt]
+
+    SessionInfo:
+      type: object
+      properties:
+        sessionCode:
+          type: string
+        therapistId:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+      required: [sessionCode, therapistId, expiresAt]
+
+    JoinSessionRequest:
+      type: object
+      properties:
+        sessionCode:
+          type: string
+      required: [sessionCode]
+
+    SessionState:
+      type: object
+      properties:
+        sessionCode:
+          type: string
+        isPlaying:
+          type: boolean
+        speedSeconds:
+          type: number
+        dotColor:
+          type: string
+        backgroundColor:
+          type: string
+      required: [sessionCode, isPlaying, speedSeconds, dotColor, backgroundColor]
+
+    UpdateSessionStateRequest:
+      type: object
+      properties:
+        isPlaying:
+          type: boolean
+        speedSeconds:
+          type: number
+        dotColor:
+          type: string
+        backgroundColor:
+          type: string
+
+    SavedTheme:
+      type: object
+      properties:
+        id:
+          type: integer
+        dotColor:
+          type: string
+        backgroundColor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, dotColor, backgroundColor, createdAt]
+
+    SaveThemeRequest:
+      type: object
+      properties:
+        dotColor:
+          type: string
+        backgroundColor:
+          type: string
+      required: [dotColor, backgroundColor]
+
+    SendPatientInviteRequest:
+      type: object
+      properties:
+        patientEmail:
+          type: string
+          format: email
+      required: [patientEmail]

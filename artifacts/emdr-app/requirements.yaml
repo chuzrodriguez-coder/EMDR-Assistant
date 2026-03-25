@@ -1,0 +1,16 @@
+packages:
+  "framer-motion": "For page transitions and smooth UI animations"
+  "@hookform/resolvers": "Zod validation for forms"
+  "react-hook-form": "Form state management"
+  "zod": "Schema validation"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes"
+
+images:
+  - path: "artifacts/emdr-app/public/images/landing-bg.png"
+    description: "A very subtle, calming abstract background with soft overlapping gradients in pale teal, light slate blue, and warm white. Professional, clinical, and tranquil."
+    aspect_ratio: "16:9"
+
+notes:
+  - "The app uses Server-Sent Events (SSE) at /api/sessions/:sessionCode/events to broadcast state to clients."
+  - "Using API hooks generated in @workspace/api-client-react."
