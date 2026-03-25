@@ -9,8 +9,8 @@ export const sessionsTable = pgTable("sessions", {
   therapistId: integer("therapist_id").notNull().references(() => therapistsTable.id),
   isPlaying: boolean("is_playing").notNull().default(false),
   speedSeconds: real("speed_seconds").notNull().default(2.0),
-  dotColor: text("dot_color").notNull().default("#FFFFFF"),
-  backgroundColor: text("background_color").notNull().default("#808080"),
+  dotColor: text("dot_color").notNull().default("#DA70D6"),
+  backgroundColor: text("background_color").notNull().default("#000080"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
 });

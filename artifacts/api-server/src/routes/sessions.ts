@@ -78,8 +78,8 @@ router.post("/create", requireConfirmedAuth, async (req, res) => {
       therapistId: therapist.id,
       isPlaying: false,
       speedSeconds: 2.0,
-      dotColor: "#FFFFFF",
-      backgroundColor: "#808080",
+      dotColor: "#DA70D6",
+      backgroundColor: "#000080",
       expiresAt,
     });
 
