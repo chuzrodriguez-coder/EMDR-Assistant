@@ -150,6 +150,36 @@ export const UpdateSessionStateResponse = zod.object({
 });
 
 /**
+ * @summary Get therapist's saved color themes
+ */
+export const GetSavedThemesResponseItem = zod.object({
+  id: zod.number(),
+  dotColor: zod.string(),
+  backgroundColor: zod.string(),
+  createdAt: zod.date(),
+});
+export const GetSavedThemesResponse = zod.array(GetSavedThemesResponseItem);
+
+/**
+ * @summary Save a color theme to therapist profile (max 6)
+ */
+export const SaveThemeBody = zod.object({
+  dotColor: zod.string(),
+  backgroundColor: zod.string(),
+});
+
+/**
+ * @summary Delete a saved color theme
+ */
+export const DeleteThemeParams = zod.object({
+  themeId: zod.coerce.number(),
+});
+
+export const DeleteThemeResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Send an invite email to a patient with the app link
  */
 export const SendPatientInviteBody = zod.unknown();

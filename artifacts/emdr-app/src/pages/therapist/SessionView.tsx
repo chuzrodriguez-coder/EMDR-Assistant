@@ -1,66 +1,38 @@
 import { useState, useEffect } from "react";
 import { useRoute, Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSessionEvents } from "@/hooks/use-session-events";
-import { useUpdateSessionState } from "@workspace/api-client-react";
+import {
+  useUpdateSessionState,
+  useSaveTheme,
+  useDeleteTheme,
+  getSavedThemes,
+} from "@workspace/api-client-react";
 import { EmdrDisplay } from "@/components/EmdrDisplay";
-import { Play, Pause, ArrowLeft, Settings2, Rabbit, Snail, Info, X } from "lucide-react";
+import {
+  Play,
+  Pause,
+  ArrowLeft,
+  Settings2,
+  Rabbit,
+  Snail,
+  Info,
+  X,
+  Bookmark,
+  Trash2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const COLOR_THEMES = [
-  {
-    name: "High Contrast",
-    description: "Best Practice",
-    bg: "#222222",
-    dot: "#FFFFFF",
-  },
-  {
-    name: "Calming",
-    description: "Navy + Light Yellow",
-    bg: "#000080",
-    dot: "#FFF176",
-  },
-  {
-    name: "Classic Default",
-    description: "Navy + Orchid",
-    bg: "#000080",
-    dot: "#DA70D6",
-  },
-  {
-    name: "Nature",
-    description: "Dark Green + White",
-    bg: "#1B4332",
-    dot: "#F0FFF0",
-  },
-  {
-    name: "Sage",
-    description: "Dark Green + Soft Gold",
-    bg: "#2D4A22",
-    dot: "#FFD580",
-  },
-  {
-    name: "Meditative",
-    description: "Dark Purple + White",
-    bg: "#2D1B69",
-    dot: "#FFFFFF",
-  },
-  {
-    name: "Grounding",
-    description: "Black + Light Yellow",
-    bg: "#0A0A0A",
-    dot: "#FFE599",
-  },
-  {
-    name: "Serene",
-    description: "Deep Blue + Light Blue",
-    bg: "#0A2463",
-    dot: "#ADD8E6",
-  },
-  {
-    name: "Energizing",
-    description: "Dark Green + Soft Gold",
-    bg: "#1A3322",
-    dot: "#FFD700",
-  },
+const PRESET_THEMES = [
+  { name: "High Contrast", description: "Best Practice", bg: "#222222", dot: "#FFFFFF" },
+  { name: "Calming", description: "Navy + Light Yellow", bg: "#000080", dot: "#FFF176" },
+  { name: "Classic Default", description: "Navy + Orchid", bg: "#000080", dot: "#DA70D6" },
+  { name: "Nature", description: "Dark Green + White", bg: "#1B4332", dot: "#F0FFF0" },
+  { name: "Sage", description: "Dark Green + Soft Gold", bg: "#2D4A22", dot: "#FFD580" },
+  { name: "Meditative", description: "Dark Purple + White", bg: "#2D1B69", dot: "#FFFFFF" },
+  { name: "Grounding", description: "Black + Light Yellow", bg: "#0A0A0A", dot: "#FFE599" },
+  { name: "Serene", description: "Deep Blue + Light Blue", bg: "#0A2463", dot: "#ADD8E6" },
+  { name: "Energizing", description: "Dark Green + Gold", bg: "#1A3322", dot: "#FFD700" },
 ];
 
 const COLOR_GUIDE = `Color Theme Guidelines for EMDR Sessions
@@ -87,19 +59,30 @@ Considerations
 • Customize to the client — use energizing yellows for low-energy clients; calming blues and greens for anxious clients.
 • Always confirm the dot contrasts clearly with the background and does not blend in.`;
 
+const MAX_SAVED = 6;
+
 export default function TherapistSessionView() {
   const [match, params] = useRoute("/therapist/session/:sessionCode");
   const sessionCode = match ? params.sessionCode : "";
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { state: serverState } = useSessionEvents(sessionCode);
   const updateMutation = useUpdateSessionState();
+  const saveThemeMutation = useSaveTheme();
+  const deleteThemeMutation = useDeleteTheme();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(2.0);
   const [bgColor, setBgColor] = useState("#000080");
   const [dotColor, setDotColor] = useState("#DA70D6");
   const [showGuide, setShowGuide] = useState(false);
+
+  const { data: savedThemes = [], refetch: refetchThemes } = useQuery({
+    queryKey: ["savedThemes"],
+    queryFn: () => getSavedThemes(),
+    retry: false,
+  });
 
   useEffect(() => {
     if (serverState && !updateMutation.isPending) {
@@ -127,10 +110,53 @@ export default function TherapistSessionView() {
     );
   };
 
-  const applyTheme = (theme: (typeof COLOR_THEMES)[0]) => {
-    setBgColor(theme.bg);
-    setDotColor(theme.dot);
-    updateState({ backgroundColor: theme.bg, dotColor: theme.dot });
+  const applyTheme = (bg: string, dot: string) => {
+    setBgColor(bg);
+    setDotColor(dot);
+    updateState({ backgroundColor: bg, dotColor: dot });
+  };
+
+  const handleSaveTheme = () => {
+    if (savedThemes.length >= MAX_SAVED) {
+      toast({
+        title: "Maximum themes reached",
+        description: "Delete a saved theme before saving a new one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveThemeMutation.mutate(
+      { data: { backgroundColor: bgColor, dotColor } },
+      {
+        onSuccess: () => {
+          toast({ title: "Theme saved to your profile" });
+          refetchThemes();
+        },
+        onError: (err: any) => {
+          toast({
+            title: "Failed to save theme",
+            description: err?.message || "Please try again.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleDeleteTheme = (themeId: number) => {
+    deleteThemeMutation.mutate(
+      { themeId },
+      {
+        onSuccess: () => {
+          toast({ title: "Theme deleted" });
+          refetchThemes();
+        },
+        onError: () => {
+          toast({ title: "Failed to delete theme", variant: "destructive" });
+        },
+      }
+    );
   };
 
   if (!sessionCode) return null;
@@ -154,7 +180,7 @@ export default function TherapistSessionView() {
         <div className="flex items-center gap-2">
           <div
             className={`w-2.5 h-2.5 rounded-full ${serverState ? "bg-green-500" : "bg-yellow-500 animate-pulse"}`}
-          ></div>
+          />
           <span className="text-xs font-medium text-muted-foreground">
             {serverState ? "Live Sync Active" : "Connecting..."}
           </span>
@@ -163,7 +189,7 @@ export default function TherapistSessionView() {
 
       {/* Main View Area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Preview Container */}
+        {/* Preview */}
         <div className="flex-1 p-4 lg:p-8 bg-black/5 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="w-full max-w-5xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-border/50 relative">
             <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-black/40 text-white/80 rounded-full text-xs font-medium backdrop-blur-md">
@@ -186,6 +212,7 @@ export default function TherapistSessionView() {
           </div>
 
           <div className="p-6 space-y-8 overflow-y-auto flex-1">
+
             {/* Play/Pause */}
             <div>
               <button
@@ -210,7 +237,7 @@ export default function TherapistSessionView() {
               </button>
             </div>
 
-            {/* Speed Control */}
+            {/* Speed */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <label className="font-medium text-sm text-foreground/80">Sweep Speed</label>
@@ -236,7 +263,7 @@ export default function TherapistSessionView() {
               <p className="text-xs text-muted-foreground text-center">Time for dot to cross the screen</p>
             </div>
 
-            <div className="h-px bg-border/60"></div>
+            <div className="h-px bg-border/60" />
 
             {/* Custom Colors */}
             <div className="space-y-5">
@@ -272,18 +299,88 @@ export default function TherapistSessionView() {
               </button>
             </div>
 
-            <div className="h-px bg-border/60"></div>
+            <div className="h-px bg-border/60" />
 
-            {/* Color Themes */}
+            {/* Save Current Theme */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-foreground/80">My Saved Themes</h3>
+                <span className="text-xs text-muted-foreground">{savedThemes.length}/{MAX_SAVED}</span>
+              </div>
+
+              {/* Save button */}
+              <button
+                onClick={handleSaveTheme}
+                disabled={saveThemeMutation.isPending || savedThemes.length >= MAX_SAVED}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-dashed border-primary/30 text-sm font-medium text-primary hover:bg-primary/5 hover:border-primary/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Bookmark className="w-4 h-4" />
+                {saveThemeMutation.isPending ? "Saving…" : "Save Current Colors"}
+              </button>
+
+              {/* Saved themes grid */}
+              {savedThemes.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {savedThemes.map((theme) => {
+                    const isActive =
+                      bgColor === theme.backgroundColor && dotColor === theme.dotColor;
+                    return (
+                      <div
+                        key={theme.id}
+                        className={`relative group flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
+                          isActive
+                            ? "border-primary ring-2 ring-primary/30 bg-primary/5"
+                            : "border-border hover:border-primary/40"
+                        }`}
+                      >
+                        {/* Apply on click */}
+                        <button
+                          onClick={() => applyTheme(theme.backgroundColor, theme.dotColor)}
+                          className="w-full h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: theme.backgroundColor }}
+                          title="Apply this theme"
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full shadow"
+                            style={{ backgroundColor: theme.dotColor }}
+                          />
+                        </button>
+                        <span className="text-[10px] text-muted-foreground">Saved</span>
+
+                        {/* Delete button on hover */}
+                        <button
+                          onClick={() => handleDeleteTheme(theme.id)}
+                          disabled={deleteThemeMutation.isPending}
+                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                          title="Delete this saved theme"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {savedThemes.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  No saved themes yet. Save up to {MAX_SAVED} of your favorite color combinations.
+                </p>
+              )}
+            </div>
+
+            <div className="h-px bg-border/60" />
+
+            {/* Preset Themes */}
             <div className="space-y-4">
               <h3 className="font-medium text-sm text-foreground/80">Recommended Themes</h3>
               <div className="grid grid-cols-3 gap-2">
-                {COLOR_THEMES.map((theme) => {
+                {PRESET_THEMES.map((theme) => {
                   const isActive = bgColor === theme.bg && dotColor === theme.dot;
                   return (
                     <button
                       key={theme.name}
-                      onClick={() => applyTheme(theme)}
+                      onClick={() => applyTheme(theme.bg, theme.dot)}
                       title={`${theme.name} — ${theme.description}`}
                       className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
                         isActive
@@ -291,7 +388,6 @@ export default function TherapistSessionView() {
                           : "border-border hover:border-primary/40 hover:bg-muted/40"
                       }`}
                     >
-                      {/* Mini preview */}
                       <div
                         className="w-full h-10 rounded-lg flex items-center justify-center"
                         style={{ backgroundColor: theme.bg }}
@@ -320,6 +416,7 @@ export default function TherapistSessionView() {
                 <span>Color selection guidance</span>
               </button>
             </div>
+
           </div>
         </div>
       </div>

@@ -24,6 +24,8 @@ import type {
   LoginRequest,
   MessageResponse,
   RegisterRequest,
+  SaveThemeRequest,
+  SavedTheme,
   SendPatientInviteRequest,
   SessionInfo,
   SessionState,
@@ -1034,6 +1036,251 @@ export const useUpdateSessionState = <
   TContext
 > => {
   return useMutation(getUpdateSessionStateMutationOptions(options));
+};
+
+/**
+ * @summary Get therapist's saved color themes
+ */
+export const getGetSavedThemesUrl = () => {
+  return `/api/themes`;
+};
+
+export const getSavedThemes = async (
+  options?: RequestInit,
+): Promise<SavedTheme[]> => {
+  return customFetch<SavedTheme[]>(getGetSavedThemesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSavedThemesQueryKey = () => {
+  return [`/api/themes`] as const;
+};
+
+export const getGetSavedThemesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSavedThemes>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSavedThemes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSavedThemesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSavedThemes>>> = ({
+    signal,
+  }) => getSavedThemes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSavedThemes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSavedThemesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSavedThemes>>
+>;
+export type GetSavedThemesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get therapist's saved color themes
+ */
+
+export function useGetSavedThemes<
+  TData = Awaited<ReturnType<typeof getSavedThemes>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSavedThemes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSavedThemesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save a color theme to therapist profile (max 6)
+ */
+export const getSaveThemeUrl = () => {
+  return `/api/themes`;
+};
+
+export const saveTheme = async (
+  saveThemeRequest: SaveThemeRequest,
+  options?: RequestInit,
+): Promise<SavedTheme> => {
+  return customFetch<SavedTheme>(getSaveThemeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(saveThemeRequest),
+  });
+};
+
+export const getSaveThemeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveTheme>>,
+    TError,
+    { data: BodyType<SaveThemeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveTheme>>,
+  TError,
+  { data: BodyType<SaveThemeRequest> },
+  TContext
+> => {
+  const mutationKey = ["saveTheme"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveTheme>>,
+    { data: BodyType<SaveThemeRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return saveTheme(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveThemeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveTheme>>
+>;
+export type SaveThemeMutationBody = BodyType<SaveThemeRequest>;
+export type SaveThemeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Save a color theme to therapist profile (max 6)
+ */
+export const useSaveTheme = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveTheme>>,
+    TError,
+    { data: BodyType<SaveThemeRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveTheme>>,
+  TError,
+  { data: BodyType<SaveThemeRequest> },
+  TContext
+> => {
+  return useMutation(getSaveThemeMutationOptions(options));
+};
+
+/**
+ * @summary Delete a saved color theme
+ */
+export const getDeleteThemeUrl = (themeId: number) => {
+  return `/api/themes/${themeId}`;
+};
+
+export const deleteTheme = async (
+  themeId: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteThemeUrl(themeId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteThemeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTheme>>,
+    TError,
+    { themeId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTheme>>,
+  TError,
+  { themeId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTheme"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTheme>>,
+    { themeId: number }
+  > = (props) => {
+    const { themeId } = props ?? {};
+
+    return deleteTheme(themeId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteThemeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTheme>>
+>;
+
+export type DeleteThemeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a saved color theme
+ */
+export const useDeleteTheme = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTheme>>,
+    TError,
+    { themeId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTheme>>,
+  TError,
+  { themeId: number },
+  TContext
+> => {
+  return useMutation(getDeleteThemeMutationOptions(options));
 };
 
 /**

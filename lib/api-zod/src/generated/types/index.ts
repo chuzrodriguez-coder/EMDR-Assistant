@@ -13,6 +13,8 @@ export * from "./joinSessionRequest";
 export * from "./loginRequest";
 export * from "./messageResponse";
 export * from "./registerRequest";
+export * from "./savedTheme";
+export * from "./saveThemeRequest";
 export * from "./sessionInfo";
 export * from "./sessionState";
 export * from "./therapistProfile";

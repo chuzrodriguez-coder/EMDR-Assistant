@@ -81,3 +81,15 @@ export interface UpdateSessionStateRequest {
   dotColor?: string;
   backgroundColor?: string;
 }
+
+export interface SavedTheme {
+  id: number;
+  dotColor: string;
+  backgroundColor: string;
+  createdAt: string;
+}
+
+export interface SaveThemeRequest {
+  dotColor: string;
+  backgroundColor: string;
+}
