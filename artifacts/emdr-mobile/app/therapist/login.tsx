@@ -96,7 +96,8 @@ export default function TherapistLoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
-                autoComplete="email"
+                autoComplete="off"
+                autoCorrect={false}
                 keyboardType="email-address"
                 returnKeyType="next"
               />
@@ -114,7 +115,10 @@ export default function TherapistLoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoComplete="current-password"
+                autoComplete="off"
+                autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
               />
