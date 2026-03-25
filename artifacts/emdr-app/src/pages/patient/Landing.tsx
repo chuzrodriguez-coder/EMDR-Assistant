@@ -39,7 +39,7 @@ export default function PatientLanding() {
       onError: (err) => {
         toast({
           title: "Failed to join",
-          description: err.error?.error || "Invalid or expired session code.",
+          description: (err.data as any)?.error || "Invalid or expired session code.",
           variant: "destructive"
         });
       }

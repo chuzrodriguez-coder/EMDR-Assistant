@@ -5,9 +5,7 @@ import { useEffect } from "react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [_, setLocation] = useLocation();
-  const { data: user, isLoading, isError } = useGetMe({
-    query: { retry: false }
-  });
+  const { data: user, isLoading, isError } = useGetMe();
 
   useEffect(() => {
     if (isError) {

@@ -31,7 +31,7 @@ export default function Profile() {
         refetch();
       },
       onError: (err) => {
-        toast({ title: "Update failed", description: err.error?.error, variant: "destructive" });
+        toast({ title: "Update failed", description: (err.data as any)?.error, variant: "destructive" });
       }
     });
   };
@@ -48,7 +48,7 @@ export default function Profile() {
         setPwdData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       },
       onError: (err) => {
-        toast({ title: "Failed to change password", description: err.error?.error, variant: "destructive" });
+        toast({ title: "Failed to change password", description: (err.data as any)?.error, variant: "destructive" });
       }
     });
   };

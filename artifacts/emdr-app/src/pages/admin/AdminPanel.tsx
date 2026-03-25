@@ -86,7 +86,7 @@ export default function AdminPanel() {
               description: "This account does not have admin privileges.",
               variant: "destructive",
             });
-            logoutMutation.mutate({});
+            logoutMutation.mutate();
             return;
           }
           queryClient.invalidateQueries({ queryKey: ["adminMe"] });
@@ -95,7 +95,7 @@ export default function AdminPanel() {
         onError: (err: any) => {
           toast({
             title: "Login failed",
-            description: err.error?.error || "Invalid credentials",
+            description: (err as any).data?.error || "Invalid credentials",
             variant: "destructive",
           });
         },
@@ -104,17 +104,14 @@ export default function AdminPanel() {
   };
 
   const handleLogout = () => {
-    logoutMutation.mutate(
-      {},
-      {
-        onSuccess: () => {
-          queryClient.clear();
-          setView("login");
-          setEmail("");
-          setPassword("");
-        },
-      }
-    );
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.clear();
+        setView("login");
+        setEmail("");
+        setPassword("");
+      },
+    });
   };
 
   const handleActivate = (id: number) => {

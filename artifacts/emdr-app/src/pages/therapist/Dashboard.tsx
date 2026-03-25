@@ -50,7 +50,7 @@ export default function Dashboard() {
 
   const handleSendInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    inviteMutation.mutate({ data: { email: inviteEmail } }, {
+    inviteMutation.mutate({ data: { patientEmail: inviteEmail } }, {
       onSuccess: () => {
         toast({ title: "Invite sent successfully" });
         setIsInviteOpen(false);

@@ -25,7 +25,7 @@ async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: stri
         },
       },
     )
-      .then((res) => res.json())
+      .then((res) => res.json() as Promise<any>)
       .then((data) => data.items?.[0]);
 
     if (!connectionSettings || !connectionSettings.settings.api_key) {

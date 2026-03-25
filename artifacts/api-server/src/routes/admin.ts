@@ -62,7 +62,7 @@ router.get("/therapists/search", requireAdmin, async (req, res) => {
 
 router.patch("/therapists/:id/activate", requireAdmin, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid therapist ID" });
       return;
@@ -90,7 +90,7 @@ router.patch("/therapists/:id/activate", requireAdmin, async (req, res) => {
 router.patch("/therapists/:id/admin", requireAdmin, async (req, res) => {
   try {
     const admin = (req as any).therapist;
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
 
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid therapist ID" });

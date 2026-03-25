@@ -77,7 +77,7 @@ router.post("/", requireAuth, async (req, res) => {
 router.delete("/:themeId", requireAuth, async (req, res) => {
   try {
     const therapist = (req as any).therapist;
-    const themeId = parseInt(req.params.themeId);
+    const themeId = parseInt(req.params.themeId as string);
 
     if (isNaN(themeId)) {
       res.status(400).json({ error: "Invalid theme ID" });
