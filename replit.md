@@ -21,10 +21,12 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   ├── emdr-app/           # React + Vite web app (therapist & patient views)
+│   └── emdr-mobile/        # Expo React Native mobile app (iOS + Android via Expo Go)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
+│   ├── api-client-react/   # Generated React Query hooks + setBaseUrl for Expo
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
 ├── scripts/                # Utility scripts (single workspace package)
@@ -34,6 +36,25 @@ artifacts-monorepo/
 ├── tsconfig.json           # Root TS project references
 └── package.json            # Root package with hoisted devDeps
 ```
+
+## EMDR Mobile App (artifacts/emdr-mobile)
+
+Expo Router file-based navigation. Screens:
+- `app/index.tsx` — Landing: role selection (Therapist / Patient)
+- `app/therapist/login.tsx` — Therapist login
+- `app/therapist/register.tsx` — Therapist registration
+- `app/therapist/dashboard.tsx` — Dashboard: create sessions, copy codes
+- `app/therapist/session/[code].tsx` — Session control: play/pause, speed, color presets
+- `app/patient/index.tsx` — Patient: OTP-style 6-digit code entry
+- `app/patient/session/[code].tsx` — Full-screen animated bilateral stimulation dot
+
+Key implementation notes:
+- `setBaseUrl(https://${EXPO_PUBLIC_DOMAIN})` called in `_layout.tsx` before any component
+- Cookie-based auth works via React Native's native cookie jar
+- Patient view polls `/api/sessions/:code/state` every 750ms via React Query `refetchInterval`
+- Dot animation uses `react-native-reanimated` `withRepeat + withTiming + reverse: true`; duration = `speedSeconds * 1000ms` per direction (matching web CSS `animation-direction: alternate`)
+- No EventSource/SSE on mobile — polling used instead
+- Theme: deep navy `#060C18` background, orchid `#DA70D6` primary accent
 
 ## TypeScript & Composite Projects
 

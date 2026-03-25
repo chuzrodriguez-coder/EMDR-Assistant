@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/emdr-mobile/"
+title = "EMDR Mobile"
+version = "1.0.0"
+id = "artifacts/emdr-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/emdr-mobile/" ]
+localPort = 25282
+
+[services.development]
+run = "pnpm --filter @workspace/emdr-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/emdr-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/emdr-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "25282"
+BASE_PATH = "/emdr-mobile/"
