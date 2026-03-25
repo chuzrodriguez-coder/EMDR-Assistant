@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,8 +10,9 @@ export const therapistsTable = pgTable("therapists", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   status: therapistStatusEnum("status").notNull().default("pending"),
-  confirmationToken: text("confirmation_token"),
-  confirmationTokenExpiry: timestamp("confirmation_token_expiry"),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  activationToken: text("activation_token"),
+  activationTokenExpiry: timestamp("activation_token_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

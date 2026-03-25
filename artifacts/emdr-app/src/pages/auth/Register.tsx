@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: "", email: "", password: "", confirmPassword: "" });
-  const [_, setLocation] = useLocation();
+  const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
 
   const registerMutation = useRegisterTherapist();
@@ -25,16 +25,12 @@ export default function Register() {
 
     registerMutation.mutate({ data: formData }, {
       onSuccess: () => {
-        toast({
-          title: "Registration successful!",
-          description: "Please check your email to confirm your account.",
-        });
-        setLocation("/therapist/login");
+        setSubmitted(true);
       },
       onError: (err) => {
         toast({
           title: "Registration failed",
-          description: err.error?.error || "An error occurred.",
+          description: (err as any).error?.error || "An error occurred.",
           variant: "destructive"
         });
       }
@@ -45,13 +41,37 @@ export default function Register() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full glass-panel p-8 rounded-3xl text-center"
+        >
+          <div className="text-5xl mb-4">📬</div>
+          <h1 className="text-2xl font-display font-bold mb-3">Registration Submitted</h1>
+          <p className="text-muted-foreground mb-6">
+            Your account has been submitted for review. An administrator will activate your account shortly.
+          </p>
+          <Link
+            href="/therapist/login"
+            className="inline-block px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all"
+          >
+            Back to Login
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 py-12">
       <Link href="/therapist/login" className="absolute top-8 left-8 flex items-center text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
       </Link>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full glass-panel p-8 rounded-3xl"

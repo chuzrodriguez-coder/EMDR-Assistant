@@ -33,16 +33,34 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   next();
 }
 
-export async function requireConfirmedAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function requireActiveAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const therapist = await getTherapistFromSession(req);
   if (!therapist) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
   if (therapist.status !== "active") {
-    res.status(403).json({ error: "Email confirmation required. Please check your email." });
+    res.status(403).json({ error: "Your account is pending activation by an administrator." });
     return;
   }
   (req as any).therapist = therapist;
   next();
+}
+
+export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const therapist = await getTherapistFromSession(req);
+  if (!therapist) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  if (!therapist.isAdmin) {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  (req as any).therapist = therapist;
+  next();
+}
+
+export async function requireConfirmedAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  return requireActiveAuth(req, res, next);
 }

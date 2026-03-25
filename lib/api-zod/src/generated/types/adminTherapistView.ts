@@ -5,12 +5,13 @@
  * EMDR Therapy Assistant API
  * OpenAPI spec version: 0.1.0
  */
-import type { TherapistProfileStatus } from "./therapistProfileStatus";
+import type { AdminTherapistViewStatus } from "./adminTherapistViewStatus";
 
-export interface TherapistProfile {
+export interface AdminTherapistView {
   id: number;
   name: string;
   email: string;
-  status: TherapistProfileStatus;
+  status: AdminTherapistViewStatus;
   isAdmin: boolean;
+  createdAt: Date;
 }

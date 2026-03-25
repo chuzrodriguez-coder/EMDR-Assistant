@@ -39,6 +39,7 @@ export const LoginTherapistResponse = zod.object({
   name: zod.string(),
   email: zod.string(),
   status: zod.enum(["pending", "active"]),
+  isAdmin: zod.boolean(),
 });
 
 /**
@@ -56,17 +57,7 @@ export const GetMeResponse = zod.object({
   name: zod.string(),
   email: zod.string(),
   status: zod.enum(["pending", "active"]),
-});
-
-/**
- * @summary Confirm email with token
- */
-export const ConfirmEmailParams = zod.object({
-  token: zod.coerce.string(),
-});
-
-export const ConfirmEmailResponse = zod.object({
-  message: zod.string(),
+  isAdmin: zod.boolean(),
 });
 
 /**
@@ -82,6 +73,7 @@ export const UpdateProfileResponse = zod.object({
   name: zod.string(),
   email: zod.string(),
   status: zod.enum(["pending", "active"]),
+  isAdmin: zod.boolean(),
 });
 
 /**
@@ -182,8 +174,76 @@ export const DeleteThemeResponse = zod.object({
 /**
  * @summary Send an invite email to a patient with the app link
  */
-export const SendPatientInviteBody = zod.unknown();
+export const SendPatientInviteBody = zod.object({
+  patientEmail: zod.string().email(),
+});
 
 export const SendPatientInviteResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary List all therapists (admin only)
+ */
+export const AdminListTherapistsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  status: zod.enum(["pending", "active"]),
+  isAdmin: zod.boolean(),
+  createdAt: zod.date(),
+});
+export const AdminListTherapistsResponse = zod.array(
+  AdminListTherapistsResponseItem,
+);
+
+/**
+ * @summary Search therapists by name or email (admin only)
+ */
+export const AdminSearchTherapistsQueryParams = zod.object({
+  q: zod.coerce.string().optional(),
+});
+
+export const AdminSearchTherapistsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  status: zod.enum(["pending", "active"]),
+  isAdmin: zod.boolean(),
+  createdAt: zod.date(),
+});
+export const AdminSearchTherapistsResponse = zod.array(
+  AdminSearchTherapistsResponseItem,
+);
+
+/**
+ * @summary Activate a therapist account (admin only)
+ */
+export const AdminActivateTherapistParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminActivateTherapistResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  status: zod.enum(["pending", "active"]),
+  isAdmin: zod.boolean(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Toggle admin status of a therapist (admin only)
+ */
+export const AdminToggleAdminStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminToggleAdminStatusResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  status: zod.enum(["pending", "active"]),
+  isAdmin: zod.boolean(),
+  createdAt: zod.date(),
 });

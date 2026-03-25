@@ -55,6 +55,24 @@ export interface TherapistProfile {
   name: string;
   email: string;
   status: TherapistProfileStatus;
+  isAdmin: boolean;
+}
+
+export type AdminTherapistViewStatus =
+  (typeof AdminTherapistViewStatus)[keyof typeof AdminTherapistViewStatus];
+
+export const AdminTherapistViewStatus = {
+  pending: "pending",
+  active: "active",
+} as const;
+
+export interface AdminTherapistView {
+  id: number;
+  name: string;
+  email: string;
+  status: AdminTherapistViewStatus;
+  isAdmin: boolean;
+  createdAt: string;
 }
 
 export interface SessionInfo {
@@ -93,3 +111,11 @@ export interface SaveThemeRequest {
   dotColor: string;
   backgroundColor: string;
 }
+
+export interface SendPatientInviteRequest {
+  patientEmail: string;
+}
+
+export type AdminSearchTherapistsParams = {
+  q?: string;
+};

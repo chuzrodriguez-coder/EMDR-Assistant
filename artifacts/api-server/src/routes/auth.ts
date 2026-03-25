@@ -4,7 +4,7 @@ import { therapistsTable, authSessionsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import argon2 from "argon2";
 import { randomBytes } from "crypto";
-import { sendConfirmationEmail } from "../lib/email";
+import { sendAdminNotificationEmail } from "../lib/email";
 import { getTherapistFromSession, requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -41,22 +41,22 @@ router.post("/register", async (req, res) => {
       parallelism: 4,
     });
 
-    const confirmationToken = randomBytes(32).toString("hex");
-    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const activationToken = randomBytes(32).toString("hex");
+    const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await db.insert(therapistsTable).values({
       name,
       email: email.toLowerCase(),
       passwordHash,
       status: "pending",
-      confirmationToken,
-      confirmationTokenExpiry: tokenExpiry,
+      activationToken,
+      activationTokenExpiry: tokenExpiry,
     });
 
     const appUrl = process.env.APP_URL || `https://${req.hostname}`;
-    await sendConfirmationEmail(email, confirmationToken);
+    await sendAdminNotificationEmail(name, email.toLowerCase(), activationToken, appUrl);
 
-    res.status(201).json({ message: "Registration successful. Please check your email to confirm your account." });
+    res.status(201).json({ message: "Registration successful. Your account is pending activation." });
   } catch (err) {
     req.log.error({ err }, "Registration error");
     res.status(500).json({ error: "Registration failed" });
@@ -106,6 +106,7 @@ router.post("/login", async (req, res) => {
       name: therapist.name,
       email: therapist.email,
       status: therapist.status,
+      isAdmin: therapist.isAdmin,
     });
   } catch (err) {
     req.log.error({ err }, "Login error");
@@ -139,6 +140,7 @@ router.get("/me", async (req, res) => {
       name: therapist.name,
       email: therapist.email,
       status: therapist.status,
+      isAdmin: therapist.isAdmin,
     });
   } catch (err) {
     req.log.error({ err }, "Get me error");
@@ -146,22 +148,48 @@ router.get("/me", async (req, res) => {
   }
 });
 
-router.get("/confirm/:token", async (req, res) => {
+router.get("/activate/:token", async (req, res) => {
   try {
     const { token } = req.params;
 
     const [therapist] = await db
       .select()
       .from(therapistsTable)
-      .where(eq(therapistsTable.confirmationToken, token));
+      .where(eq(therapistsTable.activationToken, token));
 
     if (!therapist) {
-      res.status(400).json({ error: "Invalid or expired confirmation link" });
+      res.status(400).send(`
+        <html><body style="font-family:Arial,sans-serif;text-align:center;padding:60px;background:#f8fafc;">
+          <div style="max-width:480px;margin:auto;background:white;border-radius:12px;padding:40px;box-shadow:0 1px 6px rgba(0,0,0,0.1);">
+            <h2 style="color:#dc2626;">Invalid Link</h2>
+            <p style="color:#4a5568;">This activation link is invalid or has already been used.</p>
+          </div>
+        </body></html>
+      `);
       return;
     }
 
-    if (therapist.confirmationTokenExpiry && therapist.confirmationTokenExpiry < new Date()) {
-      res.status(400).json({ error: "This confirmation link has expired. Please re-register." });
+    if (therapist.activationTokenExpiry && therapist.activationTokenExpiry < new Date()) {
+      res.status(400).send(`
+        <html><body style="font-family:Arial,sans-serif;text-align:center;padding:60px;background:#f8fafc;">
+          <div style="max-width:480px;margin:auto;background:white;border-radius:12px;padding:40px;box-shadow:0 1px 6px rgba(0,0,0,0.1);">
+            <h2 style="color:#dc2626;">Link Expired</h2>
+            <p style="color:#4a5568;">This activation link has expired. Please activate from the Admin Panel.</p>
+          </div>
+        </body></html>
+      `);
+      return;
+    }
+
+    if (therapist.status === "active") {
+      res.send(`
+        <html><body style="font-family:Arial,sans-serif;text-align:center;padding:60px;background:#f8fafc;">
+          <div style="max-width:480px;margin:auto;background:white;border-radius:12px;padding:40px;box-shadow:0 1px 6px rgba(0,0,0,0.1);">
+            <h2 style="color:#0891b2;">Already Active</h2>
+            <p style="color:#4a5568;"><strong>${therapist.name}</strong> (${therapist.email}) is already active.</p>
+          </div>
+        </body></html>
+      `);
       return;
     }
 
@@ -169,16 +197,31 @@ router.get("/confirm/:token", async (req, res) => {
       .update(therapistsTable)
       .set({
         status: "active",
-        confirmationToken: null,
-        confirmationTokenExpiry: null,
+        activationToken: null,
+        activationTokenExpiry: null,
         updatedAt: new Date(),
       })
       .where(eq(therapistsTable.id, therapist.id));
 
-    res.json({ message: "Email confirmed successfully! You can now log in and start sessions." });
+    const appUrl = process.env.APP_URL || `https://${req.hostname}`;
+    res.send(`
+      <html><body style="font-family:Arial,sans-serif;text-align:center;padding:60px;background:#f8fafc;">
+        <div style="max-width:480px;margin:auto;background:white;border-radius:12px;padding:40px;box-shadow:0 1px 6px rgba(0,0,0,0.1);">
+          <div style="font-size:48px;margin-bottom:16px;">✅</div>
+          <h2 style="color:#059669;">Account Activated</h2>
+          <p style="color:#4a5568;"><strong>${therapist.name}</strong> (${therapist.email}) has been successfully activated and can now log in.</p>
+          <a href="${appUrl}/?admin=admin" style="display:inline-block;margin-top:20px;background:#0891b2;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Go to Admin Panel</a>
+        </div>
+      </body></html>
+    `);
   } catch (err) {
-    req.log.error({ err }, "Confirm email error");
-    res.status(500).json({ error: "Confirmation failed" });
+    req.log.error({ err }, "Activate account error");
+    res.status(500).send(`
+      <html><body style="font-family:Arial,sans-serif;text-align:center;padding:60px;">
+        <h2 style="color:#dc2626;">Error</h2>
+        <p>An error occurred. Please try again or use the Admin Panel.</p>
+      </body></html>
+    `);
   }
 });
 
@@ -216,6 +259,7 @@ router.put("/update-profile", requireAuth, async (req, res) => {
       name: updated.name,
       email: updated.email,
       status: updated.status,
+      isAdmin: updated.isAdmin,
     });
   } catch (err) {
     req.log.error({ err }, "Update profile error");

@@ -9,10 +9,10 @@ import PatientLanding from "@/pages/patient/Landing";
 import PatientSessionView from "@/pages/patient/SessionView";
 import TherapistLogin from "@/pages/auth/Login";
 import TherapistRegister from "@/pages/auth/Register";
-import ConfirmEmail from "@/pages/auth/ConfirmEmail";
 import TherapistDashboard from "@/pages/therapist/Dashboard";
 import TherapistProfile from "@/pages/therapist/Profile";
 import TherapistSessionView from "@/pages/therapist/SessionView";
+import AdminPanel from "@/pages/admin/AdminPanel";
 import NotFound from "@/pages/not-found";
 
 // Components
@@ -27,11 +27,13 @@ const queryClient = new QueryClient({
   },
 });
 
+const isAdminRoute = new URLSearchParams(window.location.search).get("admin") === "admin";
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      
+
       {/* Patient Routes */}
       <Route path="/patient" component={PatientLanding} />
       <Route path="/patient/session/:sessionCode" component={PatientSessionView} />
@@ -39,7 +41,6 @@ function Router() {
       {/* Auth Routes */}
       <Route path="/therapist/login" component={TherapistLogin} />
       <Route path="/therapist/register" component={TherapistRegister} />
-      <Route path="/confirm/:token" component={ConfirmEmail} />
 
       {/* Protected Therapist Routes */}
       <Route path="/therapist/dashboard">
@@ -61,9 +62,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        {isAdminRoute ? (
+          <AdminPanel />
+        ) : (
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+        )}
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

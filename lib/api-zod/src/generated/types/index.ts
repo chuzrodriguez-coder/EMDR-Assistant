@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./adminSearchTherapistsParams";
+export * from "./adminTherapistView";
+export * from "./adminTherapistViewStatus";
 export * from "./changePasswordRequest";
 export * from "./errorResponse";
 export * from "./healthStatus";
@@ -15,6 +18,7 @@ export * from "./messageResponse";
 export * from "./registerRequest";
 export * from "./savedTheme";
 export * from "./saveThemeRequest";
+export * from "./sendPatientInviteRequest";
 export * from "./sessionInfo";
 export * from "./sessionState";
 export * from "./therapistProfile";

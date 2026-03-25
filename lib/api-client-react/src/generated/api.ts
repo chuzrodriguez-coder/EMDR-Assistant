@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminSearchTherapistsParams,
+  AdminTherapistView,
   ChangePasswordRequest,
   ErrorResponse,
   HealthStatus,
@@ -428,93 +430,6 @@ export function useGetMe<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMeQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Confirm email with token
- */
-export const getConfirmEmailUrl = (token: string) => {
-  return `/api/auth/confirm/${token}`;
-};
-
-export const confirmEmail = async (
-  token: string,
-  options?: RequestInit,
-): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getConfirmEmailUrl(token), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getConfirmEmailQueryKey = (token: string) => {
-  return [`/api/auth/confirm/${token}`] as const;
-};
-
-export const getConfirmEmailQueryOptions = <
-  TData = Awaited<ReturnType<typeof confirmEmail>>,
-  TError = ErrorType<ErrorResponse>,
->(
-  token: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof confirmEmail>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getConfirmEmailQueryKey(token);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof confirmEmail>>> = ({
-    signal,
-  }) => confirmEmail(token, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!token,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof confirmEmail>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type ConfirmEmailQueryResult = NonNullable<
-  Awaited<ReturnType<typeof confirmEmail>>
->;
-export type ConfirmEmailQueryError = ErrorType<ErrorResponse>;
-
-/**
- * @summary Confirm email with token
- */
-
-export function useConfirmEmail<
-  TData = Awaited<ReturnType<typeof confirmEmail>>,
-  TError = ErrorType<ErrorResponse>,
->(
-  token: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof confirmEmail>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getConfirmEmailQueryOptions(token, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1367,4 +1282,350 @@ export const useSendPatientInvite = <
   TContext
 > => {
   return useMutation(getSendPatientInviteMutationOptions(options));
+};
+
+/**
+ * @summary List all therapists (admin only)
+ */
+export const getAdminListTherapistsUrl = () => {
+  return `/api/admin/therapists`;
+};
+
+export const adminListTherapists = async (
+  options?: RequestInit,
+): Promise<AdminTherapistView[]> => {
+  return customFetch<AdminTherapistView[]>(getAdminListTherapistsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListTherapistsQueryKey = () => {
+  return [`/api/admin/therapists`] as const;
+};
+
+export const getAdminListTherapistsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListTherapists>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTherapists>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListTherapistsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListTherapists>>
+  > = ({ signal }) => adminListTherapists({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTherapists>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListTherapistsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListTherapists>>
+>;
+export type AdminListTherapistsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all therapists (admin only)
+ */
+
+export function useAdminListTherapists<
+  TData = Awaited<ReturnType<typeof adminListTherapists>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTherapists>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListTherapistsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Search therapists by name or email (admin only)
+ */
+export const getAdminSearchTherapistsUrl = (
+  params?: AdminSearchTherapistsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/therapists/search?${stringifiedParams}`
+    : `/api/admin/therapists/search`;
+};
+
+export const adminSearchTherapists = async (
+  params?: AdminSearchTherapistsParams,
+  options?: RequestInit,
+): Promise<AdminTherapistView[]> => {
+  return customFetch<AdminTherapistView[]>(
+    getAdminSearchTherapistsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminSearchTherapistsQueryKey = (
+  params?: AdminSearchTherapistsParams,
+) => {
+  return [`/api/admin/therapists/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getAdminSearchTherapistsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminSearchTherapists>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: AdminSearchTherapistsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminSearchTherapists>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminSearchTherapistsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminSearchTherapists>>
+  > = ({ signal }) =>
+    adminSearchTherapists(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminSearchTherapists>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminSearchTherapistsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminSearchTherapists>>
+>;
+export type AdminSearchTherapistsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Search therapists by name or email (admin only)
+ */
+
+export function useAdminSearchTherapists<
+  TData = Awaited<ReturnType<typeof adminSearchTherapists>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: AdminSearchTherapistsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminSearchTherapists>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminSearchTherapistsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Activate a therapist account (admin only)
+ */
+export const getAdminActivateTherapistUrl = (id: number) => {
+  return `/api/admin/therapists/${id}/activate`;
+};
+
+export const adminActivateTherapist = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminTherapistView> => {
+  return customFetch<AdminTherapistView>(getAdminActivateTherapistUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getAdminActivateTherapistMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminActivateTherapist>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminActivateTherapist>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminActivateTherapist"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminActivateTherapist>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminActivateTherapist(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminActivateTherapistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminActivateTherapist>>
+>;
+
+export type AdminActivateTherapistMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Activate a therapist account (admin only)
+ */
+export const useAdminActivateTherapist = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminActivateTherapist>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminActivateTherapist>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminActivateTherapistMutationOptions(options));
+};
+
+/**
+ * @summary Toggle admin status of a therapist (admin only)
+ */
+export const getAdminToggleAdminStatusUrl = (id: number) => {
+  return `/api/admin/therapists/${id}/admin`;
+};
+
+export const adminToggleAdminStatus = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminTherapistView> => {
+  return customFetch<AdminTherapistView>(getAdminToggleAdminStatusUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getAdminToggleAdminStatusMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminToggleAdminStatus>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminToggleAdminStatus>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminToggleAdminStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminToggleAdminStatus>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminToggleAdminStatus(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminToggleAdminStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminToggleAdminStatus>>
+>;
+
+export type AdminToggleAdminStatusMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Toggle admin status of a therapist (admin only)
+ */
+export const useAdminToggleAdminStatus = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminToggleAdminStatus>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminToggleAdminStatus>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminToggleAdminStatusMutationOptions(options));
 };

@@ -48,6 +48,30 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## EMDR Therapy Assistant Features
+
+- **Registration**: Therapist registers → admin notification email sent to chuzrodriguez@gmail.com with activation link + therapist details. Account starts as `pending`.
+- **Activation**: Admin clicks the link in email → `GET /api/auth/activate/:token` → HTML response activates account. Or use Admin Panel to activate manually.
+- **Login**: Therapists can only access dashboard when `status = active`. Pending accounts see "awaiting activation" message.
+- **Admin Panel**: Accessible only at `/?admin=admin`. Has its own dark-themed login that requires `isAdmin = true`. Features: list/search therapists, activate pending accounts, toggle admin status.
+- **Admin account**: chuzrodriguez@gmail.com is set as admin+active by default.
+- **Email**: Resend integration sends admin notification to chuzrodriguez@gmail.com on new registration. Patient invite email also via Resend.
+- **Password hashing**: Argon2id (argon2 package, added to `onlyBuiltDependencies` in pnpm-workspace.yaml)
+- **Sessions**: Cookie-based auth (`auth_token` httpOnly), stored in `auth_sessions` table. 30-day expiry.
+- **Saved themes**: Therapists can save up to 6 color themes. Stored in `saved_themes` table.
+- **Session codes**: Unique 6-digit codes, expire after 24hrs, blocked for 30 days in `used_session_codes` table.
+- **SSE**: Real-time sync via Server-Sent Events in-memory map.
+- **Default colors**: Navy #000080 bg, Orchid #DA70D6 dot.
+- **APP_URL env var**: Set to the Replit dev domain.
+
+## DB Schema
+
+- `therapists`: id, name, email, password_hash, status (pending/active), is_admin, activation_token, activation_token_expiry, created_at, updated_at
+- `auth_sessions`: token, therapist_id, expires_at
+- `therapist_sessions`: session code, therapist_id, expires_at, is_playing, speed_seconds, dot_color, background_color
+- `used_session_codes`: code, used_at
+- `saved_themes`: id, therapist_id, dot_color, background_color, created_at
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)

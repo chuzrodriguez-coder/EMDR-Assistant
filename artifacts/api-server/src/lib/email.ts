@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { logger } from "./logger";
 
-let connectionSettings: any;
+const ADMIN_EMAIL = "chuzrodriguez@gmail.com";
 
 async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: string } | null> {
   try {
@@ -16,7 +16,7 @@ async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: stri
       return null;
     }
 
-    connectionSettings = await fetch(
+    const connectionSettings = await fetch(
       "https://" + hostname + "/api/v2/connection?include_secrets=true&connector_names=resend",
       {
         headers: {
@@ -72,20 +72,36 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
   }
 }
 
-export async function sendConfirmationEmail(to: string, token: string): Promise<boolean> {
-  const appUrl = process.env.APP_URL || "https://localhost";
-  const confirmUrl = `${appUrl}/confirm/${token}`;
+export async function sendAdminNotificationEmail(
+  therapistName: string,
+  therapistEmail: string,
+  activationToken: string,
+  appUrl: string,
+): Promise<boolean> {
+  const activationLink = `${appUrl}/api/auth/activate/${activationToken}`;
+  const adminPanelLink = `${appUrl}/?admin=admin`;
+
   return sendEmail(
-    to,
-    "Confirm your EMDR Therapy Assistant account",
+    ADMIN_EMAIL,
+    `New therapist registration: ${therapistName}`,
     `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
         <div style="background-color: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h1 style="color: #1a3a4a; font-size: 24px; margin-bottom: 8px;">EMDR Therapy Assistant</h1>
-          <p style="color: #4a5568; margin-bottom: 24px;">Thank you for registering as a therapist. Please confirm your email address to activate your account and start creating sessions.</p>
-          <a href="${confirmUrl}" style="
+          <h2 style="color: #2d6a8a; font-size: 18px; margin-bottom: 16px;">New Therapist Registration</h2>
+
+          <p style="color: #4a5568; margin-bottom: 8px;">A new therapist has registered and is pending activation:</p>
+
+          <div style="background-color: #f0f7ff; border-radius: 8px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #0891b2;">
+            <p style="margin: 0 0 8px 0; color: #1a3a4a;"><strong>Name:</strong> ${therapistName}</p>
+            <p style="margin: 0; color: #1a3a4a;"><strong>Email:</strong> ${therapistEmail}</p>
+          </div>
+
+          <p style="color: #4a5568; margin-bottom: 20px;">Click the button below to activate this therapist's account:</p>
+
+          <a href="${activationLink}" style="
             display: inline-block;
-            background-color: #0891b2;
+            background-color: #059669;
             color: white;
             padding: 14px 28px;
             text-decoration: none;
@@ -93,9 +109,18 @@ export async function sendConfirmationEmail(to: string, token: string): Promise<
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 24px;
-          ">Confirm My Email</a>
-          <p style="color: #718096; font-size: 14px;">If you did not register for this account, you can safely ignore this email.</p>
-          <p style="color: #718096; font-size: 14px;">This confirmation link will expire in 24 hours.</p>
+          ">Activate Account</a>
+
+          <p style="color: #718096; font-size: 13px; margin-top: 8px; margin-bottom: 16px;">
+            Or copy this link: <a href="${activationLink}" style="color: #0891b2; word-break: break-all;">${activationLink}</a>
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+
+          <p style="color: #718096; font-size: 13px;">
+            You can also manage all therapists from the 
+            <a href="${adminPanelLink}" style="color: #0891b2;">Admin Panel</a>.
+          </p>
         </div>
       </div>
     `,

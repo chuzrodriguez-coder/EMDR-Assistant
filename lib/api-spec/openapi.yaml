@@ -17,6 +17,8 @@ tags:
     description: Email operations
   - name: themes
     description: Saved color themes
+  - name: admin
+    description: Admin operations
 
 paths:
   /healthz:
@@ -114,31 +116,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /auth/confirm/{token}:
-    get:
-      operationId: confirmEmail
-      tags: [auth]
-      summary: Confirm email with token
-      parameters:
-        - name: token
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Email confirmed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MessageResponse"
-        "400":
-          description: Invalid or expired token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /auth/update-profile:
     put:
       operationId: updateProfile
@@ -202,7 +179,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/SessionInfo"
         "401":
-          description: Not authenticated or not confirmed
+          description: Not authenticated or not active
           content:
             application/json:
               schema:
@@ -388,6 +365,116 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/therapists:
+    get:
+      operationId: adminListTherapists
+      tags: [admin]
+      summary: List all therapists (admin only)
+      responses:
+        "200":
+          description: List of therapists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTherapistView"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists/search:
+    get:
+      operationId: adminSearchTherapists
+      tags: [admin]
+      summary: Search therapists by name or email (admin only)
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching therapists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTherapistView"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists/{id}/activate:
+    patch:
+      operationId: adminActivateTherapist
+      tags: [admin]
+      summary: Activate a therapist account (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Therapist activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTherapistView"
+        "404":
+          description: Therapist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/therapists/{id}/admin:
+    patch:
+      operationId: adminToggleAdminStatus
+      tags: [admin]
+      summary: Toggle admin status of a therapist (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Admin status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTherapistView"
+        "400":
+          description: Cannot modify self
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Therapist not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -469,7 +556,28 @@ components:
         status:
           type: string
           enum: [pending, active]
-      required: [id, name, email, status]
+        isAdmin:
+          type: boolean
+      required: [id, name, email, status, isAdmin]
+
+    AdminTherapistView:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, active]
+        isAdmin:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, status, isAdmin, createdAt]
 
     SessionInfo:
       type: object
@@ -539,3 +647,11 @@ components:
         backgroundColor:
           type: string
       required: [dotColor, backgroundColor]
+
+    SendPatientInviteRequest:
+      type: object
+      properties:
+        patientEmail:
+          type: string
+          format: email
+      required: [patientEmail]

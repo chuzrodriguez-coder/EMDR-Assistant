@@ -19,8 +19,8 @@ export default function Login() {
       onSuccess: (data) => {
         if (data.status === 'pending') {
           toast({
-            title: "Email not confirmed",
-            description: "Please check your email to confirm your account before logging in.",
+            title: "Account pending activation",
+            description: "Your account is awaiting activation by an administrator. Please try again later.",
           });
         } else {
           setLocation("/therapist/dashboard");
@@ -29,7 +29,7 @@ export default function Login() {
       onError: (err) => {
         toast({
           title: "Login failed",
-          description: err.error?.error || "Invalid credentials",
+          description: (err as any).error?.error || "Invalid credentials",
           variant: "destructive"
         });
       }
@@ -42,7 +42,7 @@ export default function Login() {
         <ArrowLeft className="w-4 h-4 mr-2" /> Back
       </Link>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full glass-panel p-8 rounded-3xl"
