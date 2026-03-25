@@ -3,8 +3,89 @@ import { useRoute, Link } from "wouter";
 import { useSessionEvents } from "@/hooks/use-session-events";
 import { useUpdateSessionState } from "@workspace/api-client-react";
 import { EmdrDisplay } from "@/components/EmdrDisplay";
-import { Play, Pause, ArrowLeft, Settings2, Rabbit, Snail } from "lucide-react";
+import { Play, Pause, ArrowLeft, Settings2, Rabbit, Snail, Info, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+const COLOR_THEMES = [
+  {
+    name: "High Contrast",
+    description: "Best Practice",
+    bg: "#222222",
+    dot: "#FFFFFF",
+  },
+  {
+    name: "Calming",
+    description: "Navy + Light Yellow",
+    bg: "#000080",
+    dot: "#FFF176",
+  },
+  {
+    name: "Classic Default",
+    description: "Navy + Orchid",
+    bg: "#000080",
+    dot: "#DA70D6",
+  },
+  {
+    name: "Nature",
+    description: "Dark Green + White",
+    bg: "#1B4332",
+    dot: "#F0FFF0",
+  },
+  {
+    name: "Sage",
+    description: "Dark Green + Soft Gold",
+    bg: "#2D4A22",
+    dot: "#FFD580",
+  },
+  {
+    name: "Meditative",
+    description: "Dark Purple + White",
+    bg: "#2D1B69",
+    dot: "#FFFFFF",
+  },
+  {
+    name: "Grounding",
+    description: "Black + Light Yellow",
+    bg: "#0A0A0A",
+    dot: "#FFE599",
+  },
+  {
+    name: "Serene",
+    description: "Deep Blue + Light Blue",
+    bg: "#0A2463",
+    dot: "#ADD8E6",
+  },
+  {
+    name: "Energizing",
+    description: "Dark Green + Soft Gold",
+    bg: "#1A3322",
+    dot: "#FFD700",
+  },
+];
+
+const COLOR_GUIDE = `Color Theme Guidelines for EMDR Sessions
+
+Background Colors
+The background should be grounding, dark, or neutral to reduce eye strain and help the client focus on the movement.
+
+• Dark Grey / Black — Minimizes screen glare; the most recommended background. Allows the dot to stand out without visual fatigue.
+• Deep Blue — Associated with calmness, trust, and safety. Helps anxious clients feel more at ease.
+• Muted Green / Sage — Promotes balance, natural flow, and reduces mental fatigue.
+• Dark Purple — Fosters inner strength and a meditative state.
+
+Dot Colors
+The dot should be easy to track — vibrant enough to see, but not so bright it causes contrast strain.
+
+• White / Light Yellow — High contrast against dark backgrounds; easy to track without being harsh.
+• Soft Green / Sage — Creates a gentle, soothing visual experience.
+• Orchid / Light Blue — Soft, calming options that contrast well with dark backgrounds.
+• Soft Gold / Yellow — Can feel uplifting and motivating.
+
+Considerations
+• Avoid neon or high-saturation colors — they raise physiological arousal and make it harder to relax.
+• Avoid stark black-and-white — while high contrast is good, it can create unnecessary eye strain.
+• Customize to the client — use energizing yellows for low-energy clients; calming blues and greens for anxious clients.
+• Always confirm the dot contrasts clearly with the background and does not blend in.`;
 
 export default function TherapistSessionView() {
   const [match, params] = useRoute("/therapist/session/:sessionCode");
@@ -14,13 +95,12 @@ export default function TherapistSessionView() {
   const { state: serverState } = useSessionEvents(sessionCode);
   const updateMutation = useUpdateSessionState();
 
-  // Local state for optimistic updates
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(2.0);
-  const [bgColor, setBgColor] = useState("#808080");
-  const [dotColor, setDotColor] = useState("#FFFFFF");
+  const [bgColor, setBgColor] = useState("#000080");
+  const [dotColor, setDotColor] = useState("#DA70D6");
+  const [showGuide, setShowGuide] = useState(false);
 
-  // Sync local state when server state changes (if no pending mutation)
   useEffect(() => {
     if (serverState && !updateMutation.isPending) {
       setIsPlaying(serverState.isPlaying);
@@ -32,22 +112,25 @@ export default function TherapistSessionView() {
 
   const updateState = (updates: any) => {
     if (!sessionCode) return;
-    
-    // Apply locally
     if (updates.isPlaying !== undefined) setIsPlaying(updates.isPlaying);
     if (updates.speedSeconds !== undefined) setSpeed(updates.speedSeconds);
     if (updates.backgroundColor !== undefined) setBgColor(updates.backgroundColor);
     if (updates.dotColor !== undefined) setDotColor(updates.dotColor);
 
-    // Send to server
-    updateMutation.mutate({ 
-      sessionId: sessionCode, 
-      data: updates 
-    }, {
-      onError: () => {
-        toast({ title: "Failed to sync control change", variant: "destructive" });
+    updateMutation.mutate(
+      { sessionId: sessionCode, data: updates },
+      {
+        onError: () => {
+          toast({ title: "Failed to sync control change", variant: "destructive" });
+        },
       }
-    });
+    );
+  };
+
+  const applyTheme = (theme: (typeof COLOR_THEMES)[0]) => {
+    setBgColor(theme.bg);
+    setDotColor(theme.dot);
+    updateState({ backgroundColor: theme.bg, dotColor: theme.dot });
   };
 
   if (!sessionCode) return null;
@@ -57,7 +140,10 @@ export default function TherapistSessionView() {
       {/* Top Header */}
       <header className="h-16 bg-white border-b border-border px-4 flex items-center justify-between z-10 shrink-0 shadow-sm">
         <div className="flex items-center">
-          <Link href="/therapist/dashboard" className="p-2 rounded-lg hover:bg-muted text-muted-foreground mr-4 transition-colors">
+          <Link
+            href="/therapist/dashboard"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground mr-4 transition-colors"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -66,21 +152,24 @@ export default function TherapistSessionView() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${serverState ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
-          <span className="text-xs font-medium text-muted-foreground">{serverState ? 'Live Sync Active' : 'Connecting...'}</span>
+          <div
+            className={`w-2.5 h-2.5 rounded-full ${serverState ? "bg-green-500" : "bg-yellow-500 animate-pulse"}`}
+          ></div>
+          <span className="text-xs font-medium text-muted-foreground">
+            {serverState ? "Live Sync Active" : "Connecting..."}
+          </span>
         </div>
       </header>
 
       {/* Main View Area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        
         {/* Preview Container */}
         <div className="flex-1 p-4 lg:p-8 bg-black/5 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="w-full max-w-5xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-border/50 relative">
             <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-black/40 text-white/80 rounded-full text-xs font-medium backdrop-blur-md">
               Patient View Preview
             </div>
-            <EmdrDisplay 
+            <EmdrDisplay
               isPlaying={isPlaying}
               speedSeconds={speed}
               backgroundColor={bgColor}
@@ -96,16 +185,15 @@ export default function TherapistSessionView() {
             <h2 className="text-lg font-semibold">Session Controls</h2>
           </div>
 
-          <div className="p-6 space-y-8 overflow-y-auto">
-            
+          <div className="p-6 space-y-8 overflow-y-auto flex-1">
             {/* Play/Pause */}
             <div>
               <button
                 onClick={() => updateState({ isPlaying: !isPlaying })}
                 className={`w-full py-6 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300 ${
-                  isPlaying 
-                    ? 'bg-rose-50 text-rose-600 ring-2 ring-rose-500 hover:bg-rose-100' 
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20'
+                  isPlaying
+                    ? "bg-rose-50 text-rose-600 ring-2 ring-rose-500 hover:bg-rose-100"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
                 }`}
               >
                 {isPlaying ? (
@@ -132,11 +220,11 @@ export default function TherapistSessionView() {
               </div>
               <div className="flex items-center gap-4">
                 <Rabbit className="w-5 h-5 text-muted-foreground" />
-                <input 
-                  type="range" 
-                  min="0.5" 
-                  max="5.0" 
-                  step="0.1" 
+                <input
+                  type="range"
+                  min="0.5"
+                  max="5.0"
+                  step="0.1"
                   value={speed}
                   onChange={(e) => setSpeed(parseFloat(e.target.value))}
                   onMouseUp={() => updateState({ speedSeconds: speed })}
@@ -150,14 +238,14 @@ export default function TherapistSessionView() {
 
             <div className="h-px bg-border/60"></div>
 
-            {/* Colors */}
+            {/* Custom Colors */}
             <div className="space-y-5">
-              <h3 className="font-medium text-sm text-foreground/80">Appearance</h3>
-              
+              <h3 className="font-medium text-sm text-foreground/80">Custom Colors</h3>
+
               <div className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                 <label className="text-sm font-medium">Background Color</label>
-                <input 
-                  type="color" 
+                <input
+                  type="color"
                   value={bgColor}
                   onChange={(e) => setBgColor(e.target.value)}
                   onBlur={() => updateState({ backgroundColor: bgColor })}
@@ -167,26 +255,96 @@ export default function TherapistSessionView() {
 
               <div className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
                 <label className="text-sm font-medium">Dot Color</label>
-                <input 
-                  type="color" 
+                <input
+                  type="color"
                   value={dotColor}
                   onChange={(e) => setDotColor(e.target.value)}
                   onBlur={() => updateState({ dotColor: dotColor })}
                   className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent"
                 />
               </div>
-              
-              <button 
-                onClick={() => updateState({ backgroundColor: "#808080", dotColor: "#FFFFFF" })}
+
+              <button
+                onClick={() => updateState({ backgroundColor: "#000080", dotColor: "#DA70D6" })}
                 className="w-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Reset to default colors
               </button>
             </div>
 
+            <div className="h-px bg-border/60"></div>
+
+            {/* Color Themes */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-sm text-foreground/80">Recommended Themes</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {COLOR_THEMES.map((theme) => {
+                  const isActive = bgColor === theme.bg && dotColor === theme.dot;
+                  return (
+                    <button
+                      key={theme.name}
+                      onClick={() => applyTheme(theme)}
+                      title={`${theme.name} — ${theme.description}`}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
+                        isActive
+                          ? "border-primary ring-2 ring-primary/30 bg-primary/5"
+                          : "border-border hover:border-primary/40 hover:bg-muted/40"
+                      }`}
+                    >
+                      {/* Mini preview */}
+                      <div
+                        className="w-full h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: theme.bg }}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full shadow"
+                          style={{ backgroundColor: theme.dot }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium text-center leading-tight text-foreground/70 w-full truncate">
+                        {theme.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Info Icon */}
+            <div className="flex justify-center pt-2 pb-1">
+              <button
+                onClick={() => setShowGuide(true)}
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <Info className="w-4 h-4 group-hover:text-primary" />
+                <span>Color selection guidance</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Guide Modal */}
+      {showGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-lg font-semibold">Color Selection Guidance</h2>
+              <button
+                onClick={() => setShowGuide(false)}
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <pre className="whitespace-pre-wrap text-sm text-foreground/80 font-sans leading-relaxed">
+                {COLOR_GUIDE}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
