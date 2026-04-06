@@ -65,7 +65,13 @@ router.post("/sync", registerLimiter, async (req, res) => {
       clerkUser.username ||
       email.split("@")[0]
     );
-    const name = rawName.slice(0, MAX_NAME_LENGTH);
+
+    if (rawName.length > MAX_NAME_LENGTH) {
+      res.status(400).json({ error: `Display name must be ${MAX_NAME_LENGTH} characters or fewer` });
+      return;
+    }
+
+    const name = rawName.trim();
 
     const [existing] = await db
       .select()
@@ -186,10 +192,12 @@ router.delete("/account", deleteLimiter, requireAuth, async (req, res) => {
     const therapist = (req as any).therapist;
     const auth = getAuth(req);
 
-    await db.delete(usedSessionCodesTable).where(eq(usedSessionCodesTable.therapistId, therapist.id));
-    await db.delete(sessionsTable).where(eq(sessionsTable.therapistId, therapist.id));
-    await db.delete(savedThemesTable).where(eq(savedThemesTable.therapistId, therapist.id));
-    await db.delete(therapistsTable).where(eq(therapistsTable.id, therapist.id));
+    await db.transaction(async (tx) => {
+      await tx.delete(usedSessionCodesTable).where(eq(usedSessionCodesTable.therapistId, therapist.id));
+      await tx.delete(sessionsTable).where(eq(sessionsTable.therapistId, therapist.id));
+      await tx.delete(savedThemesTable).where(eq(savedThemesTable.therapistId, therapist.id));
+      await tx.delete(therapistsTable).where(eq(therapistsTable.id, therapist.id));
+    });
 
     if (auth?.userId) {
       try {
