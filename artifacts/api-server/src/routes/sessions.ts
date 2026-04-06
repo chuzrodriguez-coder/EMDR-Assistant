@@ -185,29 +185,6 @@ router.put("/:sessionId/state", async (req, res) => {
       return;
     }
 
-    const therapist = await getTherapistFromRequest(req);
-
-    if (!therapist) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
-    }
-
-    const now = new Date();
-    const [session] = await db
-      .select()
-      .from(sessionsTable)
-      .where(and(eq(sessionsTable.sessionCode, sessionId), gt(sessionsTable.expiresAt, now)));
-
-    if (!session) {
-      res.status(404).json({ error: "Session not found or expired" });
-      return;
-    }
-
-    if (session.therapistId !== therapist.id) {
-      res.status(403).json({ error: "Not authorized to control this session" });
-      return;
-    }
-
     const { isPlaying, speedSeconds, dotColor, backgroundColor } = req.body;
     const updates: Partial<typeof sessionsTable.$inferInsert> = {};
 
@@ -242,6 +219,29 @@ router.put("/:sessionId/state", async (req, res) => {
         return;
       }
       updates.backgroundColor = backgroundColor;
+    }
+
+    const therapist = await getTherapistFromRequest(req);
+
+    if (!therapist) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+
+    const now = new Date();
+    const [session] = await db
+      .select()
+      .from(sessionsTable)
+      .where(and(eq(sessionsTable.sessionCode, sessionId), gt(sessionsTable.expiresAt, now)));
+
+    if (!session) {
+      res.status(404).json({ error: "Session not found or expired" });
+      return;
+    }
+
+    if (session.therapistId !== therapist.id) {
+      res.status(403).json({ error: "Not authorized to control this session" });
+      return;
     }
 
     const [updated] = await db

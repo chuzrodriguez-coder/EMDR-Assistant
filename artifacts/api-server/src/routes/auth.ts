@@ -8,13 +8,14 @@ import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
-// /auth/me is the "login" entry point in this architecture: Clerk handles credential
-// verification externally; after a successful Clerk sign-in the client calls /auth/me
-// to retrieve the therapist profile and verify server-side status. Limit this endpoint
-// to block automated credential-stuffing lookups on the server side.
+// /auth/me is the server-side "login" gate: Clerk handles credential verification
+// externally; after a successful Clerk sign-in the client calls /auth/me to retrieve
+// the therapist profile and confirm server-side status. Rate-limiting this endpoint
+// blocks automated enumeration/credential-stuffing lookups. The threshold (30/15min)
+// allows normal page reloads and tab switches while preventing burst abuse.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 60,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests. Please try again later." },
