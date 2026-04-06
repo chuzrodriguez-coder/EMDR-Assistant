@@ -23,11 +23,13 @@ import { COLORS } from "@/constants/colors";
 interface AppExtra {
   privacyPolicyUrl?: string;
   supportEmail?: string;
+  supportUrl?: string;
 }
 
 const _extra = (Constants.expoConfig?.extra ?? {}) as AppExtra;
 const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 const PRIVACY_URL = _extra.privacyPolicyUrl ?? "";
+const SUPPORT_URL = _extra.supportUrl ?? "";
 const SUPPORT_EMAIL = _extra.supportEmail ?? "support@emdrtherapy.app";
 
 export default function TherapistDashboardScreen() {
@@ -246,12 +248,23 @@ export default function TherapistDashboardScreen() {
             <View style={styles.aboutDivider} />
             <Pressable
               style={({ pressed }) => [styles.aboutRow, pressed && styles.btnPressed]}
+              onPress={() => SUPPORT_URL && Linking.openURL(SUPPORT_URL)}
+            >
+              <View style={styles.aboutIconWrap}>
+                <Ionicons name="help-circle-outline" size={20} color={COLORS.primary} />
+              </View>
+              <Text style={styles.aboutLabel}>Support</Text>
+              <Ionicons name="open-outline" size={15} color={COLORS.textDim} />
+            </Pressable>
+            <View style={styles.aboutDivider} />
+            <Pressable
+              style={({ pressed }) => [styles.aboutRow, pressed && styles.btnPressed]}
               onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
             >
               <View style={styles.aboutIconWrap}>
                 <Ionicons name="mail-outline" size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.aboutLabel}>Contact Support</Text>
+              <Text style={styles.aboutLabel}>Contact Us</Text>
               <Text style={styles.aboutValue} numberOfLines={1}>{SUPPORT_EMAIL}</Text>
             </Pressable>
           </View>

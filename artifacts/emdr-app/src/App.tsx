@@ -13,6 +13,7 @@ import TherapistProfile from "@/pages/therapist/Profile";
 import TherapistSessionView from "@/pages/therapist/SessionView";
 import AdminPanel from "@/pages/admin/AdminPanel";
 import Privacy from "@/pages/Privacy";
+import Support from "@/pages/Support";
 import NotFound from "@/pages/not-found";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -142,6 +143,7 @@ function AppRoutes() {
               </Route>
 
               <Route path="/privacy" component={Privacy} />
+              <Route path="/support" component={Support} />
 
               <Route component={NotFound} />
             </Switch>
