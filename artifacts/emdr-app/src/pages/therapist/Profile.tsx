@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useGetMe, useUpdateProfile } from "@workspace/api-client-react";
-import { customFetch } from "@workspace/api-client-react";
+import { useGetMe, useUpdateProfile, customFetch, ApiError } from "@workspace/api-client-react";
 import { ArrowLeft, User, Shield, Loader2, CheckCircle2, AlertCircle, ExternalLink, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/react";
@@ -43,12 +42,12 @@ export default function Profile() {
       toast({ title: "Account deleted", description: "Your account and all data have been removed." });
       await signOut();
       setLocation("/");
-    } catch (err: any) {
-      toast({
-        title: "Deletion failed",
-        description: err?.data?.error ?? "Could not delete account. Please try again.",
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      const description =
+        err instanceof ApiError && typeof err.data === "object" && err.data !== null
+          ? String((err.data as Record<string, unknown>).error ?? "Could not delete account. Please try again.")
+          : "Could not delete account. Please try again.";
+      toast({ title: "Deletion failed", description, variant: "destructive" });
       setIsDeletingAccount(false);
       setShowDeleteConfirm(false);
     }

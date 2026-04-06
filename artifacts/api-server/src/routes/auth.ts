@@ -8,12 +8,16 @@ import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
+// /auth/me is the "login" entry point in this architecture: Clerk handles credential
+// verification externally; after a successful Clerk sign-in the client calls /auth/me
+// to retrieve the therapist profile and verify server-side status. Limit this endpoint
+// to block automated credential-stuffing lookups on the server side.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many login attempts. Please try again later." },
+  message: { error: "Too many requests. Please try again later." },
 });
 
 const registerLimiter = rateLimit({
