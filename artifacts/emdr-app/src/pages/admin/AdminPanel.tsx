@@ -9,6 +9,7 @@ import {
   useAdminToggleAdminStatus,
   useSyncTherapist,
   useGetMe,
+  getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import {
   Loader2,
@@ -47,7 +48,7 @@ export default function AdminPanel() {
   const toggleAdminMutation = useAdminToggleAdminStatus();
 
   const { data: currentUser, isLoading: checkingAuth, refetch: refetchMe } = useGetMe({
-    query: { enabled: isSignedIn === true && synced },
+    query: { enabled: isSignedIn === true && synced, queryKey: getGetMeQueryKey() },
   });
 
   useEffect(() => {

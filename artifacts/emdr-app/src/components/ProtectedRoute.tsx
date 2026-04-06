@@ -2,7 +2,7 @@ import { useUser } from "@clerk/react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useSyncTherapist, useGetMe } from "@workspace/api-client-react";
+import { useSyncTherapist, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -11,7 +11,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const syncMutation = useSyncTherapist();
 
   const { data: therapist, isLoading: therapistLoading, isError: therapistError, refetch } = useGetMe({
-    query: { enabled: isSignedIn === true && synced },
+    query: { enabled: isSignedIn === true && synced, queryKey: getGetMeQueryKey() },
   });
 
   useEffect(() => {

@@ -14,7 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
-import { useSignIn, useSSO } from "@clerk/expo";
+import { useSSO } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo/legacy";
 import { COLORS } from "@/constants/colors";
 
 export default function TherapistLoginScreen() {

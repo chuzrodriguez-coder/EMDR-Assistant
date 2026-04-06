@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, ReactNode, useState, useEffect } from "react";
 import { useAuth as useClerkAuth, useUser, useClerk } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSyncTherapist, useGetMe, type TherapistProfile } from "@workspace/api-client-react";
+import { useSyncTherapist, useGetMe, getGetMeQueryKey, type TherapistProfile } from "@workspace/api-client-react";
 
 interface AuthContextValue {
   user: TherapistProfile | null;
@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncMutation = useSyncTherapist();
 
   const { data: profile, isLoading: profileLoading, refetch } = useGetMe({
-    query: { enabled: isSignedIn === true && synced },
+    query: { enabled: isSignedIn === true && synced, queryKey: getGetMeQueryKey() },
   });
 
   useEffect(() => {
