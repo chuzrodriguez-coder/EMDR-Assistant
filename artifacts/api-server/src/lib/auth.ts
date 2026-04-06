@@ -35,8 +35,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 export async function requireActiveAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers["authorization"];
   req.log?.info({ hasAuthHeader: !!authHeader, authHeaderPrefix: authHeader?.slice(0, 20) }, "requireActiveAuth: checking auth");
-  const auth = getAuth(req);
-  req.log?.info({ userId: auth?.userId ?? null }, "requireActiveAuth: getAuth result");
+  const auth = getAuth(req) as any;
+  req.log?.info({ userId: auth?.userId ?? null, clerkDebug: auth?.debug?.() }, "requireActiveAuth: getAuth result");
   if (!auth?.userId) {
     res.status(401).json({ error: "Not authenticated" });
     return;

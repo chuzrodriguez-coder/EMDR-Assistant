@@ -88,7 +88,17 @@ app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(cookieParser());
 
-app.use(clerkMiddleware());
+function buildClerkOptions(): Record<string, string> {
+  if (process.env.NODE_ENV !== "production" || !process.env.REPLIT_DOMAINS) {
+    return {};
+  }
+  const primaryDomain = process.env.REPLIT_DOMAINS.split(",")[0].trim();
+  const proxyUrl = `https://${primaryDomain}${CLERK_PROXY_PATH}`;
+  logger.info({ proxyUrl }, "Clerk middleware: using proxy URL");
+  return { proxyUrl };
+}
+
+app.use(clerkMiddleware(buildClerkOptions()));
 
 app.use("/api", router);
 
