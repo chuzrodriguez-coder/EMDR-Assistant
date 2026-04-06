@@ -8,12 +8,20 @@ import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
-const syncLimiter = rateLimit({
+const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again later." },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests. Please try again later." },
+  message: { error: "Too many registration attempts. Please try again later." },
 });
 
 const deleteLimiter = rateLimit({
@@ -27,7 +35,7 @@ const deleteLimiter = rateLimit({
 const MAX_NAME_LENGTH = 100;
 const MAX_EMAIL_LENGTH = 254;
 
-router.post("/sync", syncLimiter, async (req, res) => {
+router.post("/sync", registerLimiter, async (req, res) => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -108,7 +116,7 @@ router.post("/sync", syncLimiter, async (req, res) => {
   }
 });
 
-router.get("/me", async (req, res) => {
+router.get("/me", loginLimiter, async (req, res) => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {

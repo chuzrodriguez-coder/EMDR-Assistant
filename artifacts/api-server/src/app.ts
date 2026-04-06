@@ -38,9 +38,30 @@ app.use(
   }),
 );
 
-const allowedOrigins = process.env.NODE_ENV === "production"
-  ? [process.env.ALLOWED_ORIGIN, process.env.REPLIT_DOMAINS].filter(Boolean) as string[]
-  : true;
+function parseAllowedOrigins(): string[] | true {
+  if (process.env.NODE_ENV !== "production") return true;
+
+  const raw: string[] = [];
+
+  if (process.env.ALLOWED_ORIGIN) {
+    raw.push(...process.env.ALLOWED_ORIGIN.split(","));
+  }
+  if (process.env.REPLIT_DOMAINS) {
+    raw.push(...process.env.REPLIT_DOMAINS.split(","));
+  }
+
+  const normalized = raw
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .flatMap((s) => {
+      if (s.startsWith("http://") || s.startsWith("https://")) return [s];
+      return [`https://${s}`, `http://${s}`];
+    });
+
+  return normalized.length > 0 ? normalized : true;
+}
+
+const allowedOrigins = parseAllowedOrigins();
 
 app.use(
   cors({

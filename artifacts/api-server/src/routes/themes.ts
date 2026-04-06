@@ -4,6 +4,8 @@ import { savedThemesTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
 const router: IRouter = Router();
 
 const MAX_THEMES = 6;
@@ -38,6 +40,16 @@ router.post("/", requireAuth, async (req, res) => {
 
     if (!dotColor || !backgroundColor) {
       res.status(400).json({ error: "Both dotColor and backgroundColor are required" });
+      return;
+    }
+
+    if (typeof dotColor !== "string" || !HEX_COLOR_REGEX.test(dotColor)) {
+      res.status(400).json({ error: "dotColor must be a valid hex color (e.g. #DA70D6)" });
+      return;
+    }
+
+    if (typeof backgroundColor !== "string" || !HEX_COLOR_REGEX.test(backgroundColor)) {
+      res.status(400).json({ error: "backgroundColor must be a valid hex color (e.g. #000080)" });
       return;
     }
 
