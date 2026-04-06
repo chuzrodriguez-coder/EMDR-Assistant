@@ -69,16 +69,18 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
-## EMDR Therapy Assistant Features
+## Auth: Clerk (migrated from custom cookie auth)
 
-- **Registration**: Therapist registers → admin notification email sent to chuzrodriguez@gmail.com with activation link + therapist details. Account starts as `pending`.
-- **Activation**: Admin clicks the link in email → `GET /api/auth/activate/:token` → HTML response activates account. Or use Admin Panel to activate manually.
-- **Login**: Therapists can only access dashboard when `status = active`. Pending accounts see "awaiting activation" message.
-- **Admin Panel**: Accessible only at `/?admin=admin`. Has its own dark-themed login that requires `isAdmin = true`. Features: list/search therapists, activate pending accounts, toggle admin status.
-- **Admin account**: chuzrodriguez@gmail.com is set as admin+active by default.
-- **Email**: Resend integration sends admin notification to chuzrodriguez@gmail.com on new registration. Patient invite email also via Resend.
-- **Password hashing**: Argon2id (argon2 package, added to `onlyBuiltDependencies` in pnpm-workspace.yaml)
-- **Sessions**: Cookie-based auth (`auth_token` httpOnly), stored in `auth_sessions` table. 30-day expiry.
+- **Authentication**: Clerk handles all auth (email/password + Google OAuth + Apple Sign In)
+- **Web sign-in**: `/sign-in` and `/sign-up` routes use Clerk's built-in `<SignIn>` and `<SignUp>` components
+- **Mobile sign-in**: `useSignIn`, `useSignUp`, `useSSO` from `@clerk/expo`; token cache via `expo-secure-store`
+- **Backend sync**: On first login, web `ProtectedRoute` and mobile `AuthProvider` call `POST /api/auth/sync` with name+email. This is idempotent — creates DB record if missing.
+- **Pending accounts**: After sign-up, account starts as `status=pending`. Admin must activate via Admin Panel (`/?admin=admin`) before therapist can create sessions.
+- **Admin Panel**: Accessible at `/?admin=admin`. Uses Clerk auth to check `isSignedIn` + `isAdmin`. Access denied shown for non-admin users.
+- **Admin account setup**: After DB wipe, admin user must sign up via Clerk, then manually set `status='active', is_admin=true` in DB.
+- **Clerk proxy path**: `CLERK_PROXY_PATH=/api/__clerk` (production only; dev uses Clerk CDN directly)
+- **Clerk env vars**: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY` (server), `VITE_CLERK_PUBLISHABLE_KEY` (web), `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (mobile, injected at startup)
+- **Email**: Resend integration sends patient invite email. No admin notification on registration (handled by Clerk email verification).
 - **Saved themes**: Therapists can save up to 6 color themes. Stored in `saved_themes` table.
 - **Session codes**: Unique 6-digit codes, expire after 24hrs, blocked for 30 days in `used_session_codes` table.
 - **SSE**: Real-time sync via Server-Sent Events in-memory map.
@@ -87,11 +89,11 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## DB Schema
 
-- `therapists`: id, name, email, password_hash, status (pending/active), is_admin, activation_token, activation_token_expiry, created_at, updated_at
-- `auth_sessions`: token, therapist_id, expires_at
+- `therapists`: id, name, email, clerk_user_id (NOT NULL UNIQUE), status (pending/active), is_admin, created_at, updated_at
 - `therapist_sessions`: session code, therapist_id, expires_at, is_playing, speed_seconds, dot_color, background_color
 - `used_session_codes`: code, used_at
 - `saved_themes`: id, therapist_id, dot_color, background_color, created_at
+- (Note: `auth_sessions` table and `password_hash`/`activation_token` columns were dropped in Clerk migration)
 
 ## Packages
 

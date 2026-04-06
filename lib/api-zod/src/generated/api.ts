@@ -15,38 +15,19 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * @summary Register a new therapist account
+ * @summary Create or fetch a therapist record after Clerk sign-up
  */
-export const registerTherapistBodyPasswordMin = 8;
-
-export const RegisterTherapistBody = zod.object({
+export const SyncTherapistBody = zod.object({
   name: zod.string(),
   email: zod.string().email(),
-  password: zod.string().min(registerTherapistBodyPasswordMin),
-  confirmPassword: zod.string(),
 });
 
-/**
- * @summary Login as a therapist
- */
-export const LoginTherapistBody = zod.object({
-  email: zod.string().email(),
-  password: zod.string(),
-});
-
-export const LoginTherapistResponse = zod.object({
+export const SyncTherapistResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
   status: zod.enum(["pending", "active"]),
   isAdmin: zod.boolean(),
-});
-
-/**
- * @summary Logout
- */
-export const LogoutTherapistResponse = zod.object({
-  message: zod.string(),
 });
 
 /**
@@ -61,11 +42,10 @@ export const GetMeResponse = zod.object({
 });
 
 /**
- * @summary Update therapist profile
+ * @summary Update therapist display name
  */
 export const UpdateProfileBody = zod.object({
-  name: zod.string().optional(),
-  email: zod.string().email().optional(),
+  name: zod.string(),
 });
 
 export const UpdateProfileResponse = zod.object({
@@ -74,21 +54,6 @@ export const UpdateProfileResponse = zod.object({
   email: zod.string(),
   status: zod.enum(["pending", "active"]),
   isAdmin: zod.boolean(),
-});
-
-/**
- * @summary Change therapist password
- */
-export const changePasswordBodyNewPasswordMin = 8;
-
-export const ChangePasswordBody = zod.object({
-  currentPassword: zod.string(),
-  newPassword: zod.string().min(changePasswordBodyNewPasswordMin),
-  confirmPassword: zod.string(),
-});
-
-export const ChangePasswordResponse = zod.object({
-  message: zod.string(),
 });
 
 /**

@@ -7,6 +7,5 @@
  */
 
 export interface UpdateProfileRequest {
-  name?: string;
-  email?: string;
+  name: string;
 }

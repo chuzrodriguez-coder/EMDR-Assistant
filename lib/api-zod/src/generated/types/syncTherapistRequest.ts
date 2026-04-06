@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface LoginRequest {
+export interface SyncTherapistRequest {
+  name: string;
   email: string;
-  password: string;
 }

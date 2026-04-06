@@ -7,51 +7,76 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { router, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
-import { useLoginTherapist } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useSignIn, useSSO } from "@clerk/expo";
 import { COLORS } from "@/constants/colors";
 
 export default function TherapistLoginScreen() {
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const { startSSOFlow } = useSSO();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-
-  const loginMutation = useLoginTherapist();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Please enter your email and password.");
       return;
     }
+    if (!isLoaded) return;
     setError("");
+    setIsLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    loginMutation.mutate(
-      { data: { email: email.trim().toLowerCase(), password } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["me"] });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          router.replace("/therapist/dashboard");
-        },
-        onError: (err: any) => {
-          const msg =
-            err?.data?.error ?? err?.message ?? "Login failed. Please try again.";
-          setError(msg);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        },
+    try {
+      const result = await signIn.create({
+        identifier: email.trim().toLowerCase(),
+        password,
+      });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace("/therapist/dashboard");
+      } else {
+        setError("Sign in could not be completed. Please try again.");
       }
-    );
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign in failed.";
+      setError(msg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOAuth = async (strategy: "oauth_google" | "oauth_apple") => {
+    if (!isLoaded) return;
+    setError("");
+    setIsLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const result = await startSSOFlow({ strategy });
+      if (result.createdSessionId) {
+        await result.setActive!({ session: result.createdSessionId });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace("/therapist/dashboard");
+      }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "OAuth sign in failed.";
+      setError(msg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -134,19 +159,46 @@ export default function TherapistLoginScreen() {
 
           <Pressable
             onPress={handleLogin}
-            disabled={loginMutation.isPending}
+            disabled={isLoading}
             style={({ pressed }) => [
               styles.signInBtn,
               pressed && styles.btnPressed,
-              loginMutation.isPending && styles.btnDisabled,
+              isLoading && styles.btnDisabled,
             ]}
           >
-            {loginMutation.isPending ? (
+            {isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.signInBtnText}>Sign In</Text>
             )}
           </Pressable>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or continue with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.oauthRow}>
+            <Pressable
+              onPress={() => handleOAuth("oauth_google")}
+              disabled={isLoading}
+              style={({ pressed }) => [styles.oauthBtn, pressed && styles.btnPressed]}
+            >
+              <Ionicons name="logo-google" size={20} color={COLORS.text} />
+              <Text style={styles.oauthBtnText}>Google</Text>
+            </Pressable>
+            {Platform.OS === "ios" && (
+              <Pressable
+                onPress={() => handleOAuth("oauth_apple")}
+                disabled={isLoading}
+                style={({ pressed }) => [styles.oauthBtn, pressed && styles.btnPressed]}
+              >
+                <Ionicons name="logo-apple" size={20} color={COLORS.text} />
+                <Text style={styles.oauthBtnText}>Apple</Text>
+              </Pressable>
+            )}
+          </View>
 
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>Don't have an account?</Text>
@@ -271,6 +323,42 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     color: "#fff",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: COLORS.textDim,
+  },
+  oauthRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  oauthBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    height: 50,
+  },
+  oauthBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    color: COLORS.text,
   },
   registerRow: {
     flexDirection: "row",

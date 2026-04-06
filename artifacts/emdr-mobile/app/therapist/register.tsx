@@ -13,20 +13,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
-import { useRegisterTherapist } from "@workspace/api-client-react";
+import { useSignUp } from "@clerk/expo";
 import { COLORS } from "@/constants/colors";
 
 export default function TherapistRegisterScreen() {
   const insets = useSafeAreaInsets();
+  const { signUp, setActive, isLoaded } = useSignUp();
 
+  const [step, setStep] = useState<"details" | "verify">("details");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  const registerMutation = useRegisterTherapist();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -37,44 +38,107 @@ export default function TherapistRegisterScreen() {
       setError("Password must be at least 8 characters.");
       return;
     }
+    if (!isLoaded) return;
     setError("");
+    setIsLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    registerMutation.mutate(
-      { data: { name: name.trim(), email: email.trim().toLowerCase(), password, confirmPassword: password } },
-      {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setSuccess(true);
-        },
-        onError: (err: any) => {
-          const msg = err?.data?.error ?? err?.message ?? "Registration failed.";
-          setError(msg);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        },
-      }
-    );
+    try {
+      await signUp.create({
+        firstName: name.trim().split(" ")[0],
+        lastName: name.trim().split(" ").slice(1).join(" ") || undefined,
+        emailAddress: email.trim().toLowerCase(),
+        password,
+      });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setStep("verify");
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "Registration failed.";
+      setError(msg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (success) {
+  const handleVerify = async () => {
+    if (!code.trim()) {
+      setError("Please enter the verification code.");
+      return;
+    }
+    if (!isLoaded) return;
+    setError("");
+    setIsLoading(true);
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace("/therapist/dashboard");
+      } else {
+        setError("Verification incomplete. Please try again.");
+      }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed.";
+      setError(msg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (step === "verify") {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <StatusBar style="light" />
-        <View style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={64} color={COLORS.success} />
-          </View>
-          <Text style={styles.successTitle}>Account Created</Text>
-          <Text style={styles.successSubtitle}>
-            Your account is pending activation by an administrator. You'll be able to sign in once approved.
-          </Text>
-          <Pressable
-            onPress={() => router.replace("/therapist/login")}
-            style={({ pressed }) => [styles.successBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.successBtnText}>Back to Sign In</Text>
+        <View style={styles.header}>
+          <Pressable onPress={() => setStep("details")} style={styles.backBtn} hitSlop={8}>
+            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
           </Pressable>
         </View>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.titleSection}>
+            <Ionicons name="mail-open-outline" size={36} color={COLORS.primary} />
+            <Text style={styles.title}>Verify Your Email</Text>
+            <Text style={styles.subtitle}>
+              We sent a 6-digit code to{"\n"}<Text style={{ color: COLORS.text }}>{email}</Text>
+            </Text>
+          </View>
+          <View style={styles.form}>
+            {error ? (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={COLORS.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Verification Code</Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="keypad-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="000000"
+                  placeholderTextColor={COLORS.textDim}
+                  value={code}
+                  onChangeText={setCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  returnKeyType="done"
+                  onSubmitEditing={handleVerify}
+                />
+              </View>
+            </View>
+            <Pressable
+              onPress={handleVerify}
+              disabled={isLoading}
+              style={({ pressed }) => [styles.registerBtn, pressed && styles.btnPressed, isLoading && styles.btnDisabled]}
+            >
+              {isLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.registerBtnText}>Verify & Sign In</Text>}
+            </Pressable>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -166,14 +230,14 @@ export default function TherapistRegisterScreen() {
 
           <Pressable
             onPress={handleRegister}
-            disabled={registerMutation.isPending}
+            disabled={isLoading}
             style={({ pressed }) => [
               styles.registerBtn,
               pressed && styles.btnPressed,
-              registerMutation.isPending && styles.btnDisabled,
+              isLoading && styles.btnDisabled,
             ]}
           >
-            {registerMutation.isPending ? (
+            {isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.registerBtnText}>Create Account</Text>

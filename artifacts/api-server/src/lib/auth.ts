@@ -1,32 +1,31 @@
 import { Request, Response, NextFunction } from "express";
+import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
-import { authSessionsTable, therapistsTable } from "@workspace/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { therapistsTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 
-export async function getTherapistFromSession(req: Request): Promise<typeof therapistsTable.$inferSelect | null> {
-  const token = req.cookies?.["auth_token"] as string | undefined;
-  if (!token) return null;
-
-  const now = new Date();
-  const [session] = await db
-    .select()
-    .from(authSessionsTable)
-    .where(and(eq(authSessionsTable.token, token), gt(authSessionsTable.expiresAt, now)));
-
-  if (!session) return null;
+export async function getTherapistFromRequest(req: Request): Promise<typeof therapistsTable.$inferSelect | null> {
+  const auth = getAuth(req);
+  const clerkUserId = auth?.userId;
+  if (!clerkUserId) return null;
 
   const [therapist] = await db
     .select()
     .from(therapistsTable)
-    .where(eq(therapistsTable.id, parseInt(session.therapistId)));
+    .where(eq(therapistsTable.clerkUserId, clerkUserId));
 
   return therapist || null;
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const therapist = await getTherapistFromSession(req);
-  if (!therapist) {
+  const auth = getAuth(req);
+  if (!auth?.userId) {
     res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const therapist = await getTherapistFromRequest(req);
+  if (!therapist) {
+    res.status(401).json({ error: "No therapist account found. Please complete registration." });
     return;
   }
   (req as any).therapist = therapist;
@@ -34,9 +33,14 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 }
 
 export async function requireActiveAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const therapist = await getTherapistFromSession(req);
-  if (!therapist) {
+  const auth = getAuth(req);
+  if (!auth?.userId) {
     res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const therapist = await getTherapistFromRequest(req);
+  if (!therapist) {
+    res.status(401).json({ error: "No therapist account found. Please complete registration." });
     return;
   }
   if (therapist.status !== "active") {
@@ -48,9 +52,14 @@ export async function requireActiveAuth(req: Request, res: Response, next: NextF
 }
 
 export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const therapist = await getTherapistFromSession(req);
-  if (!therapist) {
+  const auth = getAuth(req);
+  if (!auth?.userId) {
     res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const therapist = await getTherapistFromRequest(req);
+  if (!therapist) {
+    res.status(401).json({ error: "No therapist account found." });
     return;
   }
   if (!therapist.isAdmin) {

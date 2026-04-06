@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useGetMe, useCreateSession, useSendPatientInvite, useLogoutTherapist } from "@workspace/api-client-react";
+import { Link } from "wouter";
+import { useClerk } from "@clerk/react";
+import { useGetMe, useCreateSession, useSendPatientInvite } from "@workspace/api-client-react";
 import { Plus, User, LogOut, Send, Copy, Check, Loader2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as Dialog from "@radix-ui/react-dialog";
 
 export default function Dashboard() {
   const { data: user } = useGetMe();
-  const [_, setLocation] = useLocation();
+  const { signOut } = useClerk();
   const { toast } = useToast();
-  
+
   const createMutation = useCreateSession();
-  const logoutMutation = useLogoutTherapist();
   const inviteMutation = useSendPatientInvite();
 
   const [activeSessionCode, setActiveSessionCode] = useState<string | null>(null);
@@ -63,11 +63,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        setLocation("/therapist/login");
-      }
-    });
+    signOut({ redirectUrl: "/sign-in" });
   };
 
   return (

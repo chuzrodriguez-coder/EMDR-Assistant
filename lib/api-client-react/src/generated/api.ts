@@ -19,18 +19,16 @@ import type {
 import type {
   AdminSearchTherapistsParams,
   AdminTherapistView,
-  ChangePasswordRequest,
   ErrorResponse,
   HealthStatus,
   JoinSessionRequest,
-  LoginRequest,
   MessageResponse,
-  RegisterRequest,
   SaveThemeRequest,
   SavedTheme,
   SendPatientInviteRequest,
   SessionInfo,
   SessionState,
+  SyncTherapistRequest,
   TherapistProfile,
   UpdateProfileRequest,
   UpdateSessionStateRequest,
@@ -121,128 +119,42 @@ export function useHealthCheck<
 }
 
 /**
- * @summary Register a new therapist account
+ * @summary Create or fetch a therapist record after Clerk sign-up
  */
-export const getRegisterTherapistUrl = () => {
-  return `/api/auth/register`;
+export const getSyncTherapistUrl = () => {
+  return `/api/auth/sync`;
 };
 
-export const registerTherapist = async (
-  registerRequest: RegisterRequest,
-  options?: RequestInit,
-): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getRegisterTherapistUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(registerRequest),
-  });
-};
-
-export const getRegisterTherapistMutationOptions = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof registerTherapist>>,
-    TError,
-    { data: BodyType<RegisterRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof registerTherapist>>,
-  TError,
-  { data: BodyType<RegisterRequest> },
-  TContext
-> => {
-  const mutationKey = ["registerTherapist"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof registerTherapist>>,
-    { data: BodyType<RegisterRequest> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return registerTherapist(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type RegisterTherapistMutationResult = NonNullable<
-  Awaited<ReturnType<typeof registerTherapist>>
->;
-export type RegisterTherapistMutationBody = BodyType<RegisterRequest>;
-export type RegisterTherapistMutationError = ErrorType<ErrorResponse>;
-
-/**
- * @summary Register a new therapist account
- */
-export const useRegisterTherapist = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof registerTherapist>>,
-    TError,
-    { data: BodyType<RegisterRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof registerTherapist>>,
-  TError,
-  { data: BodyType<RegisterRequest> },
-  TContext
-> => {
-  return useMutation(getRegisterTherapistMutationOptions(options));
-};
-
-/**
- * @summary Login as a therapist
- */
-export const getLoginTherapistUrl = () => {
-  return `/api/auth/login`;
-};
-
-export const loginTherapist = async (
-  loginRequest: LoginRequest,
+export const syncTherapist = async (
+  syncTherapistRequest: SyncTherapistRequest,
   options?: RequestInit,
 ): Promise<TherapistProfile> => {
-  return customFetch<TherapistProfile>(getLoginTherapistUrl(), {
+  return customFetch<TherapistProfile>(getSyncTherapistUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(loginRequest),
+    body: JSON.stringify(syncTherapistRequest),
   });
 };
 
-export const getLoginTherapistMutationOptions = <
+export const getSyncTherapistMutationOptions = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof loginTherapist>>,
+    Awaited<ReturnType<typeof syncTherapist>>,
     TError,
-    { data: BodyType<LoginRequest> },
+    { data: BodyType<SyncTherapistRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof loginTherapist>>,
+  Awaited<ReturnType<typeof syncTherapist>>,
   TError,
-  { data: BodyType<LoginRequest> },
+  { data: BodyType<SyncTherapistRequest> },
   TContext
 > => {
-  const mutationKey = ["loginTherapist"];
+  const mutationKey = ["syncTherapist"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -252,125 +164,44 @@ export const getLoginTherapistMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof loginTherapist>>,
-    { data: BodyType<LoginRequest> }
+    Awaited<ReturnType<typeof syncTherapist>>,
+    { data: BodyType<SyncTherapistRequest> }
   > = (props) => {
     const { data } = props ?? {};
 
-    return loginTherapist(data, requestOptions);
+    return syncTherapist(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type LoginTherapistMutationResult = NonNullable<
-  Awaited<ReturnType<typeof loginTherapist>>
+export type SyncTherapistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof syncTherapist>>
 >;
-export type LoginTherapistMutationBody = BodyType<LoginRequest>;
-export type LoginTherapistMutationError = ErrorType<ErrorResponse>;
+export type SyncTherapistMutationBody = BodyType<SyncTherapistRequest>;
+export type SyncTherapistMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Login as a therapist
+ * @summary Create or fetch a therapist record after Clerk sign-up
  */
-export const useLoginTherapist = <
+export const useSyncTherapist = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof loginTherapist>>,
+    Awaited<ReturnType<typeof syncTherapist>>,
     TError,
-    { data: BodyType<LoginRequest> },
+    { data: BodyType<SyncTherapistRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof loginTherapist>>,
+  Awaited<ReturnType<typeof syncTherapist>>,
   TError,
-  { data: BodyType<LoginRequest> },
+  { data: BodyType<SyncTherapistRequest> },
   TContext
 > => {
-  return useMutation(getLoginTherapistMutationOptions(options));
-};
-
-/**
- * @summary Logout
- */
-export const getLogoutTherapistUrl = () => {
-  return `/api/auth/logout`;
-};
-
-export const logoutTherapist = async (
-  options?: RequestInit,
-): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getLogoutTherapistUrl(), {
-    ...options,
-    method: "POST",
-  });
-};
-
-export const getLogoutTherapistMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof logoutTherapist>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof logoutTherapist>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["logoutTherapist"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof logoutTherapist>>,
-    void
-  > = () => {
-    return logoutTherapist(requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type LogoutTherapistMutationResult = NonNullable<
-  Awaited<ReturnType<typeof logoutTherapist>>
->;
-
-export type LogoutTherapistMutationError = ErrorType<unknown>;
-
-/**
- * @summary Logout
- */
-export const useLogoutTherapist = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof logoutTherapist>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof logoutTherapist>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getLogoutTherapistMutationOptions(options));
+  return useMutation(getSyncTherapistMutationOptions(options));
 };
 
 /**
@@ -439,7 +270,7 @@ export function useGetMe<
 }
 
 /**
- * @summary Update therapist profile
+ * @summary Update therapist display name
  */
 export const getUpdateProfileUrl = () => {
   return `/api/auth/update-profile`;
@@ -502,7 +333,7 @@ export type UpdateProfileMutationBody = BodyType<UpdateProfileRequest>;
 export type UpdateProfileMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Update therapist profile
+ * @summary Update therapist display name
  */
 export const useUpdateProfile = <
   TError = ErrorType<ErrorResponse>,
@@ -522,92 +353,6 @@ export const useUpdateProfile = <
   TContext
 > => {
   return useMutation(getUpdateProfileMutationOptions(options));
-};
-
-/**
- * @summary Change therapist password
- */
-export const getChangePasswordUrl = () => {
-  return `/api/auth/change-password`;
-};
-
-export const changePassword = async (
-  changePasswordRequest: ChangePasswordRequest,
-  options?: RequestInit,
-): Promise<MessageResponse> => {
-  return customFetch<MessageResponse>(getChangePasswordUrl(), {
-    ...options,
-    method: "PUT",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(changePasswordRequest),
-  });
-};
-
-export const getChangePasswordMutationOptions = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof changePassword>>,
-    TError,
-    { data: BodyType<ChangePasswordRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof changePassword>>,
-  TError,
-  { data: BodyType<ChangePasswordRequest> },
-  TContext
-> => {
-  const mutationKey = ["changePassword"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof changePassword>>,
-    { data: BodyType<ChangePasswordRequest> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return changePassword(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type ChangePasswordMutationResult = NonNullable<
-  Awaited<ReturnType<typeof changePassword>>
->;
-export type ChangePasswordMutationBody = BodyType<ChangePasswordRequest>;
-export type ChangePasswordMutationError = ErrorType<ErrorResponse>;
-
-/**
- * @summary Change therapist password
- */
-export const useChangePassword = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof changePassword>>,
-    TError,
-    { data: BodyType<ChangePasswordRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof changePassword>>,
-  TError,
-  { data: BodyType<ChangePasswordRequest> },
-  TContext
-> => {
-  return useMutation(getChangePasswordMutationOptions(options));
 };
 
 /**

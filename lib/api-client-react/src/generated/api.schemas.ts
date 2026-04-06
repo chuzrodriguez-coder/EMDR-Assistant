@@ -17,29 +17,13 @@ export interface ErrorResponse {
   error: string;
 }
 
-export interface RegisterRequest {
+export interface SyncTherapistRequest {
   name: string;
   email: string;
-  /** @minLength 8 */
-  password: string;
-  confirmPassword: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
 }
 
 export interface UpdateProfileRequest {
-  name?: string;
-  email?: string;
-}
-
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  /** @minLength 8 */
-  newPassword: string;
-  confirmPassword: string;
+  name: string;
 }
 
 export type TherapistProfileStatus =

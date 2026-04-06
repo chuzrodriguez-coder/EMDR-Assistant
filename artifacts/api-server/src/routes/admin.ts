@@ -3,7 +3,6 @@ import { db } from "@workspace/db";
 import { therapistsTable } from "@workspace/db/schema";
 import { eq, ilike, or } from "drizzle-orm";
 import { requireAdmin } from "../lib/auth";
-import { randomBytes } from "crypto";
 
 const router: IRouter = Router();
 
@@ -76,7 +75,7 @@ router.patch("/therapists/:id/activate", requireAdmin, async (req, res) => {
 
     const [updated] = await db
       .update(therapistsTable)
-      .set({ status: "active", activationToken: null, activationTokenExpiry: null, updatedAt: new Date() })
+      .set({ status: "active", updatedAt: new Date() })
       .where(eq(therapistsTable.id, id))
       .returning();
 

@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useUser, useClerk } from "@clerk/react";
 import { useToast } from "@/hooks/use-toast";
 import {
-  getMe,
   adminListTherapists,
   adminSearchTherapists,
-  useLoginTherapist,
-  useLogoutTherapist,
   useAdminActivateTherapist,
   useAdminToggleAdminStatus,
+  useSyncTherapist,
+  useGetMe,
 } from "@workspace/api-client-react";
 import {
   Loader2,
@@ -34,31 +34,39 @@ function formatDate(iso: string) {
 
 export default function AdminPanel() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
 
-  const [view, setView] = useState<"login" | "dashboard">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [synced, setSynced] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const loginMutation = useLoginTherapist();
-  const logoutMutation = useLogoutTherapist();
+  const syncMutation = useSyncTherapist();
   const activateMutation = useAdminActivateTherapist();
   const toggleAdminMutation = useAdminToggleAdminStatus();
 
-  const { data: currentUser, isLoading: checkingAuth } = useQuery({
-    queryKey: ["adminMe"],
-    queryFn: () => getMe(),
-    retry: false,
+  const { data: currentUser, isLoading: checkingAuth, refetch: refetchMe } = useGetMe({
+    query: { enabled: isSignedIn === true && synced },
   });
 
   useEffect(() => {
-    if (currentUser?.isAdmin) {
-      setView("dashboard");
-    }
-  }, [currentUser]);
+    if (!isLoaded || !isSignedIn || synced) return;
+    const name =
+      user?.fullName ||
+      user?.firstName ||
+      user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
+      "Admin";
+    const email = user?.primaryEmailAddress?.emailAddress || "";
+    if (!email) return;
+    syncMutation.mutate(
+      { data: { name, email } },
+      {
+        onSuccess: () => { setSynced(true); refetchMe(); },
+        onError: () => { setSynced(true); },
+      }
+    );
+  }, [isLoaded, isSignedIn, synced]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(searchQuery), 300);
@@ -71,47 +79,11 @@ export default function AdminPanel() {
       debouncedQuery
         ? adminSearchTherapists({ q: debouncedQuery })
         : adminListTherapists(),
-    enabled: view === "dashboard",
+    enabled: currentUser?.isAdmin === true,
   });
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate(
-      { data: { email, password } },
-      {
-        onSuccess: (data) => {
-          if (!data.isAdmin) {
-            toast({
-              title: "Access denied",
-              description: "This account does not have admin privileges.",
-              variant: "destructive",
-            });
-            logoutMutation.mutate();
-            return;
-          }
-          queryClient.invalidateQueries({ queryKey: ["adminMe"] });
-          setView("dashboard");
-        },
-        onError: (err: any) => {
-          toast({
-            title: "Login failed",
-            description: (err as any).data?.error || "Invalid credentials",
-            variant: "destructive",
-          });
-        },
-      }
-    );
-  };
-
   const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.clear();
-        setView("login");
-        setEmail("");
-        setPassword("");
-      },
-    });
+    signOut({ redirectUrl: "/" });
   };
 
   const handleActivate = (id: number) => {
@@ -152,7 +124,7 @@ export default function AdminPanel() {
     );
   };
 
-  if (checkingAuth) {
+  if (!isLoaded || (isSignedIn && !synced) || (synced && checkingAuth)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <Loader2 className="w-8 h-8 animate-spin text-white/50" />
@@ -160,72 +132,55 @@ export default function AdminPanel() {
     );
   }
 
-  if (view === "login") {
+  if (!isSignedIn) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-4">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm text-center">
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
               <Shield className="w-5 h-5 text-cyan-400" />
             </div>
             <h1 className="text-white text-xl font-bold">Admin Panel</h1>
           </div>
-
-          <div className="bg-slate-800 rounded-2xl p-8 shadow-xl border border-white/5">
-            <p className="text-slate-400 text-sm mb-6 text-center">
-              Sign in with your admin account
-            </p>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                  placeholder="admin@example.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loginMutation.isPending}
-                className="w-full py-3 rounded-xl font-semibold bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50 transition-all mt-2 flex items-center justify-center"
-              >
-                {loginMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-            </form>
+          <p className="text-slate-400 mb-6">You must be signed in to access the admin panel.</p>
+          <a
+            href="/sign-in"
+            className="inline-block px-6 py-3 rounded-xl font-semibold bg-cyan-600 text-white hover:bg-cyan-500 transition-all"
+          >
+            Sign In
+          </a>
+          <div className="mt-6">
+            <a href="/" className="text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center gap-2 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Return to app
+            </a>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="mt-6 text-center">
-            <a
-              href="/"
-              className="text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center gap-2 transition-colors"
+  if (!currentUser?.isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-4">
+        <div className="w-full max-w-sm text-center">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-red-400" />
+            </div>
+            <h1 className="text-white text-xl font-bold">Access Denied</h1>
+          </div>
+          <p className="text-slate-400 mb-6">
+            Your account (<strong className="text-slate-300">{currentUser?.email}</strong>) does not have admin privileges.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleLogout}
+              className="px-6 py-3 rounded-xl font-semibold bg-slate-700 text-white hover:bg-slate-600 transition-all"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Return to app
+              Sign Out
+            </button>
+            <a href="/" className="text-slate-500 hover:text-slate-300 text-sm flex items-center justify-center gap-2 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Return to app
             </a>
           </div>
         </div>

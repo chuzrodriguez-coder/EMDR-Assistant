@@ -46,7 +46,7 @@ export default function Landing() {
             </div>
           </Link>
 
-          <Link href="/therapist/login" className="group">
+          <Link href="/sign-in" className="group">
             <div className="bg-primary text-primary-foreground p-8 rounded-3xl text-left hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full border border-primary-foreground/10">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-6">
                 <Activity className="w-6 h-6 text-white" />

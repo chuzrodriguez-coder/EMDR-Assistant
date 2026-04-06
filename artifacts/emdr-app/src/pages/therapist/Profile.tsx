@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { useGetMe, useUpdateProfile, useChangePassword } from "@workspace/api-client-react";
-import { ArrowLeft, User, Shield, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useGetMe, useUpdateProfile } from "@workspace/api-client-react";
+import { ArrowLeft, User, Shield, Loader2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
@@ -9,46 +9,24 @@ export default function Profile() {
   const { toast } = useToast();
   
   const updateProfileMutation = useUpdateProfile();
-  const changePasswordMutation = useChangePassword();
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  
-  const [pwdData, setPwdData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
   useEffect(() => {
     if (user) {
       setName(user.name);
-      setEmail(user.email);
     }
   }, [user]);
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfileMutation.mutate({ data: { name, email } }, {
+    updateProfileMutation.mutate({ data: { name } }, {
       onSuccess: () => {
         toast({ title: "Profile updated successfully" });
         refetch();
       },
       onError: (err) => {
         toast({ title: "Update failed", description: (err.data as any)?.error, variant: "destructive" });
-      }
-    });
-  };
-
-  const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pwdData.newPassword !== pwdData.confirmPassword) {
-      toast({ title: "Passwords don't match", variant: "destructive" });
-      return;
-    }
-    changePasswordMutation.mutate({ data: pwdData }, {
-      onSuccess: () => {
-        toast({ title: "Password changed successfully" });
-        setPwdData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      },
-      onError: (err) => {
-        toast({ title: "Failed to change password", description: (err.data as any)?.error, variant: "destructive" });
       }
     });
   };
@@ -87,7 +65,7 @@ export default function Profile() {
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5 text-muted-foreground">Full Name</label>
+                <label className="block text-sm font-medium mb-1.5 text-muted-foreground">Display Name</label>
                 <input
                   type="text"
                   value={name}
@@ -99,10 +77,11 @@ export default function Profile() {
                 <label className="block text-sm font-medium mb-1.5 text-muted-foreground">Email Address</label>
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-border focus:ring-4 focus:ring-primary/10 transition-all"
+                  value={user?.email || ""}
+                  disabled
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-muted/40 text-muted-foreground cursor-not-allowed"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Email is managed via your account settings.</p>
               </div>
               <button
                 type="submit"
@@ -121,50 +100,19 @@ export default function Profile() {
               <div className="p-3 bg-rose-100 rounded-xl">
                 <Shield className="w-6 h-6 text-rose-600" />
               </div>
-              <h2 className="text-xl font-semibold">Security</h2>
+              <h2 className="text-xl font-semibold">Security &amp; Account</h2>
             </div>
 
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-muted-foreground">Current Password</label>
-                <input
-                  type="password"
-                  required
-                  value={pwdData.currentPassword}
-                  onChange={(e) => setPwdData({...pwdData, currentPassword: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-border focus:ring-4 focus:ring-rose-500/10 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-muted-foreground">New Password</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={pwdData.newPassword}
-                  onChange={(e) => setPwdData({...pwdData, newPassword: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-border focus:ring-4 focus:ring-rose-500/10 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-muted-foreground">Confirm New Password</label>
-                <input
-                  type="password"
-                  required
-                  value={pwdData.confirmPassword}
-                  onChange={(e) => setPwdData({...pwdData, confirmPassword: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-border focus:ring-4 focus:ring-rose-500/10 transition-all"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={changePasswordMutation.isPending}
-                className="w-full py-3 mt-4 rounded-xl font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center"
-              >
-                {changePasswordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Update Password
-              </button>
-            </form>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Password changes, email management, connected accounts (Google, Apple), and two-factor authentication are all managed through your secure account portal.
+            </p>
+
+            <a
+              href="/sign-in"
+              className="w-full py-3 rounded-xl font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+            >
+              Manage Account <ExternalLink className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </main>
