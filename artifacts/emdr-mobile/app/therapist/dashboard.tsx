@@ -71,6 +71,26 @@ export default function TherapistDashboardScreen() {
 
   const codeDigits = activeSession ? activeSession.split("") : [];
 
+  if (user && user.status === "pending") {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top, justifyContent: "center", alignItems: "center", padding: 32 }]}>
+        <StatusBar style="light" />
+        <Ionicons name="time-outline" size={48} color={COLORS.warning ?? "#F59E0B"} />
+        <Text style={[styles.userName, { fontSize: 22, textAlign: "center", marginTop: 16 }]}>Account Pending Activation</Text>
+        <Text style={[styles.greeting, { fontSize: 15, textAlign: "center", marginTop: 8, lineHeight: 22 }]}>
+          Your account has been created and your email is verified. An administrator will activate your account shortly.
+        </Text>
+        <Text style={[styles.greeting, { marginTop: 12 }]}>Signed in as {user.email}</Text>
+        <Pressable
+          onPress={() => { logout(); router.replace("/"); }}
+          style={({ pressed }) => [{ marginTop: 32, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.surface }, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={{ fontFamily: "Inter_500Medium", color: COLORS.textMuted, fontSize: 15 }}>Sign Out</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <StatusBar style="light" />
