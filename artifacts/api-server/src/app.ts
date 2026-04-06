@@ -11,6 +11,10 @@ import { startCleanupScheduler } from "./lib/cleanup";
 
 const app: Express = express();
 
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(
   pinoHttp({
     logger,

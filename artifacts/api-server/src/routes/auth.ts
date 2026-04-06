@@ -10,17 +10,19 @@ const router: IRouter = Router();
 
 // /auth/me is the server-side "login" gate: Clerk handles credential verification
 // externally; after a successful Clerk sign-in the client calls /auth/me to retrieve
-// the therapist profile and confirm server-side status. Rate-limiting this endpoint
-// blocks automated enumeration/credential-stuffing lookups. The threshold (30/15min)
-// allows normal page reloads and tab switches while preventing burst abuse.
+// the therapist profile and confirm server-side status. Keeping this limit tighter
+// than the registration limit (10 vs 20) blocks credential-stuffing/enumeration while
+// allowing normal browser page reloads within a session.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests. Please try again later." },
+  message: { error: "Too many login attempts. Please try again later." },
 });
 
+// Registration is more lenient: a single sign-up attempt may trigger multiple /sync
+// calls (retries, tab duplication), so a higher quota over a longer window is appropriate.
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 20,
