@@ -54,11 +54,18 @@ function parseAllowedOrigins(): string[] | true {
     .map((s) => s.trim())
     .filter(Boolean)
     .flatMap((s) => {
-      if (s.startsWith("http://") || s.startsWith("https://")) return [s];
-      return [`https://${s}`, `http://${s}`];
+      if (s.startsWith("https://") || s.startsWith("http://")) return [s];
+      return [`https://${s}`];
     });
 
-  return normalized.length > 0 ? normalized : true;
+  if (normalized.length === 0) {
+    logger.warn(
+      "No ALLOWED_ORIGIN or REPLIT_DOMAINS configured in production — CORS will block all cross-origin requests. Set ALLOWED_ORIGIN to your app domain.",
+    );
+    return [];
+  }
+
+  return normalized;
 }
 
 const allowedOrigins = parseAllowedOrigins();
