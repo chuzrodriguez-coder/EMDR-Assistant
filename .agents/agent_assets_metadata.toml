@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "e6bH9yDG5ZXbU6_sHDYZc"
+uri = "file://artifacts/emdr-mobile/assets/images/icon.png"
+type = "image"
+title = "emdr app icon orchid navy"
+
+[[generated]]
+id = "weG1FDu7pYlbcRgnsEZ5G"
+uri = "file://artifacts/emdr-mobile/assets/images/splash-icon.png"
+type = "image"
+title = "emdr splash orchid orb navy"

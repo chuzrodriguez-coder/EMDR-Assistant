@@ -16,6 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
 import { useSSO } from "@clerk/expo";
 import { useSignIn } from "@clerk/expo/legacy";
+import * as Linking from "expo-linking";
 import { COLORS } from "@/constants/colors";
 
 export default function TherapistLoginScreen() {
@@ -65,7 +66,10 @@ export default function TherapistLoginScreen() {
     setIsLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const result = await startSSOFlow({ strategy });
+      const result = await startSSOFlow({
+        strategy,
+        redirectUrl: Linking.createURL("/sso-callback"),
+      });
       if (result.createdSessionId) {
         await result.setActive!({ session: result.createdSessionId });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

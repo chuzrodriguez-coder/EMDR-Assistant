@@ -16,6 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
 import { useSSO } from "@clerk/expo";
 import { useSignUp } from "@clerk/expo/legacy";
+import * as Linking from "expo-linking";
 import { COLORS } from "@/constants/colors";
 
 export default function TherapistRegisterScreen() {
@@ -66,7 +67,10 @@ export default function TherapistRegisterScreen() {
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple") => {
     try {
       setError("");
-      const { createdSessionId, setActive: setActiveSSO } = await startSSOFlow({ strategy });
+      const { createdSessionId, setActive: setActiveSSO } = await startSSOFlow({
+        strategy,
+        redirectUrl: Linking.createURL("/sso-callback"),
+      });
       if (createdSessionId && setActiveSSO) {
         await setActiveSSO({ session: createdSessionId });
         router.replace("/therapist/dashboard");

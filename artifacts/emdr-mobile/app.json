@@ -11,13 +11,20 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#060C18"
+      "backgroundColor": "#000080"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.emdrtherapy.app",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "package": "com.emdrtherapy.app",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -30,11 +37,27 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0"
+          },
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "privacyPolicyUrl": "https://64321b1b-5b8c-4c39-af84-06387c04b0cd-00-wzdceite45m2.riker.replit.dev/privacy",
+      "supportEmail": "support@emdrtherapy.app",
+      "supportUrl": "https://64321b1b-5b8c-4c39-af84-06387c04b0cd-00-wzdceite45m2.riker.replit.dev/privacy"
     }
   }
 }

@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,9 +15,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
+import Constants from "expo-constants";
 import { useCreateSession } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth";
 import { COLORS } from "@/constants/colors";
+
+const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
+const PRIVACY_URL = (Constants.expoConfig?.extra as any)?.privacyPolicyUrl ?? "";
+const SUPPORT_EMAIL = (Constants.expoConfig?.extra as any)?.supportEmail ?? "support@emdrtherapy.app";
 
 export default function TherapistDashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -209,6 +215,41 @@ export default function TherapistDashboardScreen() {
             </>
           )}
         </Pressable>
+
+        <View style={styles.aboutSection}>
+          <Text style={styles.sectionTitle}>About</Text>
+          <View style={styles.aboutCard}>
+            <View style={styles.aboutRow}>
+              <View style={styles.aboutIconWrap}>
+                <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
+              </View>
+              <Text style={styles.aboutLabel}>Version</Text>
+              <Text style={styles.aboutValue}>{APP_VERSION}</Text>
+            </View>
+            <View style={styles.aboutDivider} />
+            <Pressable
+              style={({ pressed }) => [styles.aboutRow, pressed && styles.btnPressed]}
+              onPress={() => PRIVACY_URL && Linking.openURL(PRIVACY_URL)}
+            >
+              <View style={styles.aboutIconWrap}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.primary} />
+              </View>
+              <Text style={styles.aboutLabel}>Privacy Policy</Text>
+              <Ionicons name="open-outline" size={15} color={COLORS.textDim} />
+            </Pressable>
+            <View style={styles.aboutDivider} />
+            <Pressable
+              style={({ pressed }) => [styles.aboutRow, pressed && styles.btnPressed]}
+              onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
+            >
+              <View style={styles.aboutIconWrap}>
+                <Ionicons name="mail-outline" size={20} color={COLORS.primary} />
+              </View>
+              <Text style={styles.aboutLabel}>Support</Text>
+              <Text style={styles.aboutValue} numberOfLines={1}>{SUPPORT_EMAIL}</Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -333,4 +374,39 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   createBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 17, color: "#fff" },
+  aboutSection: { gap: 12 },
+  aboutCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  aboutRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+  },
+  aboutIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.primaryDim,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  aboutLabel: {
+    flex: 1,
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: COLORS.text,
+  },
+  aboutValue: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
+  aboutDivider: { height: 1, backgroundColor: COLORS.border, marginLeft: 62 },
 });
