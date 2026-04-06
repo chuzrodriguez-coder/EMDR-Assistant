@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -43,6 +43,12 @@ function stripBase(path: string): string {
 }
 
 function SignInPage() {
+  const { isLoaded, isSignedIn } = useUser();
+
+  if (isLoaded && isSignedIn) {
+    return <Redirect to="/therapist/dashboard" />;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <SignIn

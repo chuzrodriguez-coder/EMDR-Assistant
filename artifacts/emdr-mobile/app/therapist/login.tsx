@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
-import { useSSO } from "@clerk/expo";
+import { useSSO, useAuth } from "@clerk/expo";
 import { useSignIn } from "@clerk/expo/legacy";
 import * as Linking from "expo-linking";
 import { COLORS } from "@/constants/colors";
@@ -23,6 +23,13 @@ export default function TherapistLoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startSSOFlow } = useSSO();
+  const { isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      router.replace("/therapist/dashboard");
+    }
+  }, [isSignedIn]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
