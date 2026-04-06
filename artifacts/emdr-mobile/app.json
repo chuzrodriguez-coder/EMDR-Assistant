@@ -3,6 +3,7 @@
     "name": "EMDR Therapy",
     "slug": "emdr-mobile",
     "version": "1.0.0",
+    "description": "EMDR Therapy Assistant — connect therapists and patients for real-time bilateral stimulation sessions.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "emdr-mobile",

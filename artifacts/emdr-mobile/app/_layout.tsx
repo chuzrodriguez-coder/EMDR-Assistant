@@ -8,6 +8,7 @@ import {
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/expo";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect } from "react";
@@ -60,9 +61,18 @@ function ClerkAuthBridge() {
 }
 
 function RootLayoutNav() {
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", () => {
+      // Expo Router handles routing for all registered scheme URLs automatically.
+      // Clerk's ClerkProvider completes the OAuth token exchange from the callback URL.
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="sso-callback" />
       <Stack.Screen name="therapist/login" />
       <Stack.Screen name="therapist/register" />
       <Stack.Screen name="therapist/dashboard" />
