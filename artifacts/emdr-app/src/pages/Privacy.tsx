@@ -51,8 +51,8 @@ export default function Privacy() {
             <h2 className="text-lg font-semibold mb-3">3. How Long We Retain Data</h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li><strong className="text-foreground">Active sessions</strong> are automatically deleted after 24 hours of creation.</li>
-              <li><strong className="text-foreground">Session code history</strong> is retained for up to 30 days to prevent code reuse, then permanently deleted.</li>
-              <li><strong className="text-foreground">Expired session records</strong> older than 7 days are automatically purged from our database.</li>
+              <li><strong className="text-foreground">Session code history</strong> is retained for approximately 37 days (30-day reuse-prevention window plus a 7-day automated cleanup grace period), then permanently deleted.</li>
+              <li><strong className="text-foreground">Expired session records</strong> older than 7 days are automatically purged from our database by a daily scheduled job.</li>
               <li><strong className="text-foreground">Therapist account data</strong> (name, email, saved themes) is retained until you request account deletion.</li>
             </ul>
           </section>
