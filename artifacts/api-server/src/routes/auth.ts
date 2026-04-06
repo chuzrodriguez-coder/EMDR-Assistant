@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getAuth } from "@clerk/express";
+import { getAuth, clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import { therapistsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
@@ -15,12 +15,22 @@ router.post("/sync", async (req, res) => {
       return;
     }
 
-    const { name, email } = req.body;
+    const clerkUser = await clerkClient.users.getUser(auth.userId);
+    const primaryEmail = clerkUser.emailAddresses.find(
+      (e) => e.id === clerkUser.primaryEmailAddressId
+    );
 
-    if (!name || !email) {
-      res.status(400).json({ error: "Name and email are required" });
+    if (!primaryEmail?.emailAddress) {
+      res.status(400).json({ error: "No verified primary email address on Clerk account" });
       return;
     }
+
+    const email = primaryEmail.emailAddress.toLowerCase().trim();
+    const name = (
+      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
+      clerkUser.username ||
+      email.split("@")[0]
+    );
 
     const [existing] = await db
       .select()
@@ -41,7 +51,7 @@ router.post("/sync", async (req, res) => {
     const [byEmail] = await db
       .select()
       .from(therapistsTable)
-      .where(eq(therapistsTable.email, email.toLowerCase()));
+      .where(eq(therapistsTable.email, email));
 
     if (byEmail) {
       res.status(400).json({ error: "An account with this email already exists." });
@@ -52,8 +62,8 @@ router.post("/sync", async (req, res) => {
       .insert(therapistsTable)
       .values({
         clerkUserId: auth.userId,
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
+        name,
+        email,
         status: "pending",
       })
       .returning();
