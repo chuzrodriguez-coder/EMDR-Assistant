@@ -30,7 +30,7 @@ const _extra = (Constants.expoConfig?.extra ?? {}) as AppExtra;
 const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 const PRIVACY_URL = _extra.privacyPolicyUrl ?? "";
 const SUPPORT_URL = _extra.supportUrl ?? "";
-const SUPPORT_EMAIL = _extra.supportEmail ?? "support@emdrtherapy.app";
+const SUPPORT_EMAIL = _extra.supportEmail ?? "jesuslr@jlrcollaborations.com";
 
 export default function TherapistDashboardScreen() {
   const insets = useSafeAreaInsets();

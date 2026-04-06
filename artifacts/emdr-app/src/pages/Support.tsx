@@ -29,11 +29,11 @@ export default function Support() {
               We aim to respond within one business day.
             </p>
             <a
-              href="mailto:support@emdrtherapy.app"
+              href="mailto:jesuslr@jlrcollaborations.com"
               className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
             >
               <Mail className="w-4 h-4" />
-              support@emdrtherapy.app
+              jesuslr@jlrcollaborations.com
             </a>
           </section>
 
@@ -57,7 +57,7 @@ export default function Support() {
               <div>
                 <h3 className="font-medium mb-1">How do I delete my account?</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Account deletion can be requested by emailing us at support@emdrtherapy.app. All
+                  Account deletion can be requested by emailing us at jesuslr@jlrcollaborations.com. All
                   data will be permanently removed within 30 days.
                 </p>
               </div>
