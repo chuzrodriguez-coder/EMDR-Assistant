@@ -2,8 +2,7 @@ import { Router, type IRouter, Request, Response } from "express";
 import { db } from "@workspace/db";
 import { sessionsTable, usedSessionCodesTable } from "@workspace/db/schema";
 import { eq, and, gt, lt } from "drizzle-orm";
-import { requireConfirmedAuth } from "../lib/auth";
-import { getTherapistFromSession } from "../lib/auth";
+import { requireConfirmedAuth, getTherapistFromRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -164,7 +163,7 @@ router.get("/:sessionId/state", async (req, res) => {
 router.put("/:sessionId/state", async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const therapist = await getTherapistFromSession(req);
+    const therapist = await getTherapistFromRequest(req);
 
     if (!therapist) {
       res.status(401).json({ error: "Not authenticated" });

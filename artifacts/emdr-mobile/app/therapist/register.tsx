@@ -7,18 +7,20 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import * as Haptics from "expo-haptics";
-import { useSignUp } from "@clerk/expo";
+import { useSignUp, useSSO } from "@clerk/expo";
 import { COLORS } from "@/constants/colors";
 
 export default function TherapistRegisterScreen() {
   const insets = useSafeAreaInsets();
   const { signUp, setActive, isLoaded } = useSignUp();
+  const { startSSOFlow } = useSSO();
 
   const [step, setStep] = useState<"details" | "verify">("details");
   const [name, setName] = useState("");
@@ -57,6 +59,20 @@ export default function TherapistRegisterScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOAuth = async (strategy: "oauth_google" | "oauth_apple") => {
+    try {
+      setError("");
+      const { createdSessionId, setActive: setActiveSSO } = await startSSOFlow({ strategy });
+      if (createdSessionId && setActiveSSO) {
+        await setActiveSSO({ session: createdSessionId });
+        router.replace("/therapist/dashboard");
+      }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "OAuth sign-up failed.";
+      setError(msg);
     }
   };
 
@@ -244,6 +260,31 @@ export default function TherapistRegisterScreen() {
             )}
           </Pressable>
 
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or continue with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.oauthRow}>
+            <Pressable
+              onPress={() => handleOAuth("oauth_google")}
+              style={({ pressed }) => [styles.oauthBtn, pressed && styles.btnPressed]}
+            >
+              <Ionicons name="logo-google" size={20} color={COLORS.text} />
+              <Text style={styles.oauthBtnText}>Google</Text>
+            </Pressable>
+            {Platform.OS === "ios" && (
+              <Pressable
+                onPress={() => handleOAuth("oauth_apple")}
+                style={({ pressed }) => [styles.oauthBtn, pressed && styles.btnPressed]}
+              >
+                <Ionicons name="logo-apple" size={20} color={COLORS.text} />
+                <Text style={styles.oauthBtnText}>Apple</Text>
+              </Pressable>
+            )}
+          </View>
+
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>Already have an account?</Text>
             <Pressable onPress={() => router.replace("/therapist/login")}>
@@ -308,4 +349,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16, paddingHorizontal: 32, marginTop: 12,
   },
   successBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" },
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { fontFamily: "Inter_400Regular", fontSize: 13, color: COLORS.textMuted },
+  oauthRow: { flexDirection: "row", gap: 12 },
+  oauthBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    height: 50,
+  },
+  oauthBtnText: { fontFamily: "Inter_500Medium", fontSize: 15, color: COLORS.text },
 });
