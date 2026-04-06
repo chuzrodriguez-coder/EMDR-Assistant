@@ -8,6 +8,11 @@ const router: IRouter = Router();
 
 const sseClients: Map<string, Set<Response>> = new Map();
 
+const SESSION_CODE_REGEX = /^\d{1,6}$/;
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+const MAX_SPEED = 10;
+const MIN_SPEED = 0.1;
+
 function broadcastSessionState(sessionCode: string, state: object) {
   const clients = sseClients.get(sessionCode);
   if (!clients || clients.size === 0) return;
@@ -28,7 +33,6 @@ router.post("/create", requireConfirmedAuth, async (req, res) => {
   try {
     const therapist = (req as any).therapist;
     const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     let sessionCode: string | null = null;
@@ -108,7 +112,13 @@ router.post("/join", async (req, res) => {
       return;
     }
 
-    const normalizedCode = sessionCode.trim().padStart(6, "0");
+    const trimmed = sessionCode.trim();
+    if (!SESSION_CODE_REGEX.test(trimmed)) {
+      res.status(400).json({ error: "Invalid session code format" });
+      return;
+    }
+
+    const normalizedCode = trimmed.padStart(6, "0");
     const now = new Date();
 
     const [session] = await db
@@ -135,6 +145,12 @@ router.post("/join", async (req, res) => {
 router.get("/:sessionId/state", async (req, res) => {
   try {
     const { sessionId } = req.params;
+
+    if (!SESSION_CODE_REGEX.test(sessionId)) {
+      res.status(400).json({ error: "Invalid session code format" });
+      return;
+    }
+
     const now = new Date();
 
     const [session] = await db
@@ -163,6 +179,12 @@ router.get("/:sessionId/state", async (req, res) => {
 router.put("/:sessionId/state", async (req, res) => {
   try {
     const { sessionId } = req.params;
+
+    if (!SESSION_CODE_REGEX.test(sessionId)) {
+      res.status(400).json({ error: "Invalid session code format" });
+      return;
+    }
+
     const therapist = await getTherapistFromRequest(req);
 
     if (!therapist) {
@@ -189,10 +211,38 @@ router.put("/:sessionId/state", async (req, res) => {
     const { isPlaying, speedSeconds, dotColor, backgroundColor } = req.body;
     const updates: Partial<typeof sessionsTable.$inferInsert> = {};
 
-    if (isPlaying !== undefined) updates.isPlaying = isPlaying;
-    if (speedSeconds !== undefined) updates.speedSeconds = speedSeconds;
-    if (dotColor !== undefined) updates.dotColor = dotColor;
-    if (backgroundColor !== undefined) updates.backgroundColor = backgroundColor;
+    if (isPlaying !== undefined) {
+      if (typeof isPlaying !== "boolean") {
+        res.status(400).json({ error: "isPlaying must be a boolean" });
+        return;
+      }
+      updates.isPlaying = isPlaying;
+    }
+
+    if (speedSeconds !== undefined) {
+      const speed = Number(speedSeconds);
+      if (isNaN(speed) || speed < MIN_SPEED || speed > MAX_SPEED) {
+        res.status(400).json({ error: `speedSeconds must be between ${MIN_SPEED} and ${MAX_SPEED}` });
+        return;
+      }
+      updates.speedSeconds = speed;
+    }
+
+    if (dotColor !== undefined) {
+      if (typeof dotColor !== "string" || !HEX_COLOR_REGEX.test(dotColor)) {
+        res.status(400).json({ error: "dotColor must be a valid hex color (e.g. #DA70D6)" });
+        return;
+      }
+      updates.dotColor = dotColor;
+    }
+
+    if (backgroundColor !== undefined) {
+      if (typeof backgroundColor !== "string" || !HEX_COLOR_REGEX.test(backgroundColor)) {
+        res.status(400).json({ error: "backgroundColor must be a valid hex color (e.g. #000080)" });
+        return;
+      }
+      updates.backgroundColor = backgroundColor;
+    }
 
     const [updated] = await db
       .update(sessionsTable)
@@ -219,6 +269,11 @@ router.put("/:sessionId/state", async (req, res) => {
 
 router.get("/:sessionId/events", async (req, res) => {
   const { sessionId } = req.params;
+
+  if (!SESSION_CODE_REGEX.test(sessionId)) {
+    res.status(400).json({ error: "Invalid session code format" });
+    return;
+  }
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");

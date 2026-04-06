@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useGetMe, useUpdateProfile } from "@workspace/api-client-react";
-import { ArrowLeft, User, Shield, Loader2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { customFetch } from "@workspace/api-client-react";
+import { ArrowLeft, User, Shield, Loader2, CheckCircle2, AlertCircle, ExternalLink, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useClerk } from "@clerk/react";
 
 export default function Profile() {
   const { data: user, refetch } = useGetMe();
   const { toast } = useToast();
-  
-  const updateProfileMutation = useUpdateProfile();
+  const { signOut } = useClerk();
+  const [, setLocation] = useLocation();
 
+  const updateProfileMutation = useUpdateProfile();
   const [name, setName] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -29,6 +34,24 @@ export default function Profile() {
         toast({ title: "Update failed", description: (err.data as any)?.error, variant: "destructive" });
       }
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await customFetch("/api/auth/account", { method: "DELETE" });
+      toast({ title: "Account deleted", description: "Your account and all data have been removed." });
+      await signOut();
+      setLocation("/");
+    } catch (err: any) {
+      toast({
+        title: "Deletion failed",
+        description: err?.data?.error ?? "Could not delete account. Please try again.",
+        variant: "destructive",
+      });
+      setIsDeletingAccount(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   return (
@@ -70,6 +93,7 @@ export default function Profile() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  maxLength={100}
                   className="w-full px-4 py-3 rounded-xl border border-border focus:ring-4 focus:ring-primary/10 transition-all"
                 />
               </div>
@@ -94,25 +118,75 @@ export default function Profile() {
             </form>
           </div>
 
-          {/* Security */}
-          <div className="bg-white p-8 rounded-3xl border border-border shadow-sm">
-            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
-              <div className="p-3 bg-rose-100 rounded-xl">
-                <Shield className="w-6 h-6 text-rose-600" />
+          {/* Security & Account */}
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-3xl border border-border shadow-sm">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
+                <div className="p-3 bg-rose-100 rounded-xl">
+                  <Shield className="w-6 h-6 text-rose-600" />
+                </div>
+                <h2 className="text-xl font-semibold">Security &amp; Account</h2>
               </div>
-              <h2 className="text-xl font-semibold">Security &amp; Account</h2>
+
+              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                Password changes, email management, connected accounts (Google, Apple), and two-factor authentication are all managed through your secure account portal.
+              </p>
+
+              <a
+                href="/sign-in"
+                className="w-full py-3 rounded-xl font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+              >
+                Manage Account <ExternalLink className="w-4 h-4" />
+              </a>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Password changes, email management, connected accounts (Google, Apple), and two-factor authentication are all managed through your secure account portal.
-            </p>
+            {/* Privacy & Data */}
+            <div className="bg-white p-8 rounded-3xl border border-border shadow-sm">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
+                <div className="p-3 bg-blue-100 rounded-xl">
+                  <Shield className="w-6 h-6 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-semibold">Privacy &amp; Data</h2>
+              </div>
 
-            <a
-              href="/sign-in"
-              className="w-full py-3 rounded-xl font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
-            >
-              Manage Account <ExternalLink className="w-4 h-4" />
-            </a>
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                We only store your name, email, and session settings. No patient data is ever collected.{" "}
+                <Link href="/privacy" className="text-primary underline hover:no-underline">
+                  Read our privacy policy
+                </Link>
+                .
+              </p>
+
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-3 rounded-xl font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete Account
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-red-700 bg-red-50 px-4 py-3 rounded-xl">
+                    This will permanently delete your account, all saved themes, and all session history. This cannot be undone.
+                  </p>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={isDeletingAccount}
+                    className="w-full py-3 rounded-xl font-medium bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {isDeletingAccount ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {isDeletingAccount ? "Deleting…" : "Yes, Delete My Account"}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeletingAccount}
+                    className="w-full py-3 rounded-xl font-medium bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>

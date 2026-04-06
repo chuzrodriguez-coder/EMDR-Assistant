@@ -1,13 +1,33 @@
 import { Router, type IRouter } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
+import rateLimit from "express-rate-limit";
 import { db } from "@workspace/db";
-import { therapistsTable } from "@workspace/db/schema";
+import { therapistsTable, sessionsTable, usedSessionCodesTable, savedThemesTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
-router.post("/sync", async (req, res) => {
+const syncLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+});
+
+const deleteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many deletion requests. Please try again later." },
+});
+
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 254;
+
+router.post("/sync", syncLimiter, async (req, res) => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -25,12 +45,19 @@ router.post("/sync", async (req, res) => {
       return;
     }
 
-    const email = primaryEmail.emailAddress.toLowerCase().trim();
-    const name = (
+    const rawEmail = primaryEmail.emailAddress;
+    if (rawEmail.length > MAX_EMAIL_LENGTH) {
+      res.status(400).json({ error: "Email address is too long" });
+      return;
+    }
+
+    const email = rawEmail.toLowerCase().trim();
+    const rawName = (
       [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
       clerkUser.username ||
       email.split("@")[0]
     );
+    const name = rawName.slice(0, MAX_NAME_LENGTH);
 
     const [existing] = await db
       .select()
@@ -117,8 +144,13 @@ router.put("/update-profile", requireAuth, async (req, res) => {
     const therapist = (req as any).therapist;
     const { name } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name || typeof name !== "string" || !name.trim()) {
       res.status(400).json({ error: "Name is required" });
+      return;
+    }
+
+    if (name.trim().length > MAX_NAME_LENGTH) {
+      res.status(400).json({ error: `Name must be ${MAX_NAME_LENGTH} characters or fewer` });
       return;
     }
 
@@ -138,6 +170,31 @@ router.put("/update-profile", requireAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Update profile error");
     res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+router.delete("/account", deleteLimiter, requireAuth, async (req, res) => {
+  try {
+    const therapist = (req as any).therapist;
+    const auth = getAuth(req);
+
+    await db.delete(usedSessionCodesTable).where(eq(usedSessionCodesTable.therapistId, therapist.id));
+    await db.delete(sessionsTable).where(eq(sessionsTable.therapistId, therapist.id));
+    await db.delete(savedThemesTable).where(eq(savedThemesTable.therapistId, therapist.id));
+    await db.delete(therapistsTable).where(eq(therapistsTable.id, therapist.id));
+
+    if (auth?.userId) {
+      try {
+        await clerkClient.users.deleteUser(auth.userId);
+      } catch (clerkErr) {
+        req.log.warn({ clerkErr }, "Failed to delete Clerk user; local record already removed");
+      }
+    }
+
+    res.json({ message: "Account deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Account deletion error");
+    res.status(500).json({ error: "Failed to delete account" });
   }
 });
 

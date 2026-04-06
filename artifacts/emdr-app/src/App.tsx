@@ -12,6 +12,7 @@ import TherapistDashboard from "@/pages/therapist/Dashboard";
 import TherapistProfile from "@/pages/therapist/Profile";
 import TherapistSessionView from "@/pages/therapist/SessionView";
 import AdminPanel from "@/pages/admin/AdminPanel";
+import Privacy from "@/pages/Privacy";
 import NotFound from "@/pages/not-found";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -55,13 +56,17 @@ function SignInPage() {
 
 function SignUpPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 p-4 gap-4">
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
         fallbackRedirectUrl={`${basePath}/therapist/dashboard`}
       />
+      <p className="text-sm text-muted-foreground">
+        By creating an account you agree to our{" "}
+        <a href={`${basePath}/privacy`} className="underline hover:no-underline">Privacy Policy</a>.
+      </p>
     </div>
   );
 }
@@ -135,6 +140,8 @@ function AppRoutes() {
               <Route path="/therapist/session/:sessionCode">
                 {() => <ProtectedRoute><TherapistSessionView /></ProtectedRoute>}
               </Route>
+
+              <Route path="/privacy" component={Privacy} />
 
               <Route component={NotFound} />
             </Switch>
