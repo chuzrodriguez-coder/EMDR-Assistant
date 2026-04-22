@@ -95,6 +95,31 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  useEffect(() => {
+    // #region agent log
+    fetch("http://127.0.0.1:7332/ingest/ea51380c-eb98-4248-bba9-d77f94224c3b", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "6ac953",
+      },
+      body: JSON.stringify({
+        sessionId: "6ac953",
+        runId: "google-auth-investigation",
+        hypothesisId: "H2",
+        location: "app/_layout.tsx:RootLayout:useEffect",
+        message: "Clerk and base URL config snapshot",
+        data: {
+          hasClerkPublishableKey: Boolean(clerkPubKey),
+          hasPublicDomain: Boolean(process.env.EXPO_PUBLIC_DOMAIN),
+          platform: Platform.OS,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }, []);
+
   if (!fontsLoaded && !fontError) return null;
 
   return (

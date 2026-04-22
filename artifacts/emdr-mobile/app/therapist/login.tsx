@@ -37,6 +37,32 @@ export default function TherapistLoginScreen() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const debugLog = (
+    hypothesisId: string,
+    location: string,
+    message: string,
+    data: Record<string, unknown>
+  ) => {
+    // #region agent log
+    fetch("http://127.0.0.1:7332/ingest/ea51380c-eb98-4248-bba9-d77f94224c3b", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "6ac953",
+      },
+      body: JSON.stringify({
+        sessionId: "6ac953",
+        runId: "google-auth-investigation",
+        hypothesisId,
+        location,
+        message,
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  };
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Please enter your email and password.");
@@ -68,6 +94,13 @@ export default function TherapistLoginScreen() {
   };
 
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple") => {
+    const redirectUrl = Linking.createURL("/sso-callback");
+    debugLog("H1", "app/therapist/login.tsx:handleOAuth:start", "OAuth initiated", {
+      strategy,
+      platform: Platform.OS,
+      isLoaded,
+      redirectUrl,
+    });
     if (!isLoaded) return;
     setError("");
     setIsLoading(true);
@@ -75,14 +108,30 @@ export default function TherapistLoginScreen() {
     try {
       const result = await startSSOFlow({
         strategy,
-        redirectUrl: Linking.createURL("/sso-callback"),
+        redirectUrl,
+      });
+      debugLog("H3", "app/therapist/login.tsx:handleOAuth:result", "startSSOFlow returned", {
+        strategy,
+        hasCreatedSessionId: Boolean(result.createdSessionId),
+        hasSetActive: Boolean(result.setActive),
       });
       if (result.createdSessionId) {
         await result.setActive!({ session: result.createdSessionId });
+        debugLog("H3", "app/therapist/login.tsx:handleOAuth:setActive", "Session activated", {
+          strategy,
+          route: "/therapist/dashboard",
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace("/therapist/dashboard");
       }
     } catch (err: any) {
+      debugLog("H4", "app/therapist/login.tsx:handleOAuth:error", "OAuth failed", {
+        strategy,
+        platform: Platform.OS,
+        errorMessage: err?.message ?? null,
+        clerkMessage: err?.errors?.[0]?.longMessage ?? null,
+        clerkCode: err?.errors?.[0]?.code ?? null,
+      });
       const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "OAuth sign in failed.";
       setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

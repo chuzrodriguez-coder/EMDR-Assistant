@@ -33,6 +33,32 @@ export default function TherapistRegisterScreen() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const debugLog = (
+    hypothesisId: string,
+    location: string,
+    message: string,
+    data: Record<string, unknown>
+  ) => {
+    // #region agent log
+    fetch("http://127.0.0.1:7332/ingest/ea51380c-eb98-4248-bba9-d77f94224c3b", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "6ac953",
+      },
+      body: JSON.stringify({
+        sessionId: "6ac953",
+        runId: "google-auth-investigation",
+        hypothesisId,
+        location,
+        message,
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  };
+
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError("Please fill in all fields.");
@@ -67,15 +93,34 @@ export default function TherapistRegisterScreen() {
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple") => {
     try {
       setError("");
+      const redirectUrl = Linking.createURL("/sso-callback");
+      debugLog("H1", "app/therapist/register.tsx:handleOAuth:start", "OAuth initiated", {
+        strategy,
+        platform: Platform.OS,
+        isLoaded,
+        redirectUrl,
+      });
       const { createdSessionId, setActive: setActiveSSO } = await startSSOFlow({
         strategy,
-        redirectUrl: Linking.createURL("/sso-callback"),
+        redirectUrl,
+      });
+      debugLog("H3", "app/therapist/register.tsx:handleOAuth:result", "startSSOFlow returned", {
+        strategy,
+        hasCreatedSessionId: Boolean(createdSessionId),
+        hasSetActive: Boolean(setActiveSSO),
       });
       if (createdSessionId && setActiveSSO) {
         await setActiveSSO({ session: createdSessionId });
         router.replace("/therapist/dashboard");
       }
     } catch (err: any) {
+      debugLog("H4", "app/therapist/register.tsx:handleOAuth:error", "OAuth failed", {
+        strategy,
+        platform: Platform.OS,
+        errorMessage: err?.message ?? null,
+        clerkMessage: err?.errors?.[0]?.longMessage ?? null,
+        clerkCode: err?.errors?.[0]?.code ?? null,
+      });
       const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "OAuth sign-up failed.";
       setError(msg);
     }
